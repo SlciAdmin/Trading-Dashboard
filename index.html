@@ -1,227 +1,248 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nikhil – Trading Journal 2026</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>TradeVault — Professional Trading Journal</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+  
+  <!-- Chart.js CDN -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+  
+  <!-- External CSS -->
+  <link rel="stylesheet" href="style.css"/>
 </head>
 <body>
 
-<!-- ═══════════════════════════════════════════════
-     SIDEBAR NAV
-═══════════════════════════════════════════════ -->
+<!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-logo">
-    <span class="logo-mark">N</span>
-    <div>
-      <div class="logo-name">Nikhil</div>
-      <div class="logo-sub">Trading Journal</div>
+  <div class="sidebar-brand">
+    <div class="brand-logo">
+      <div class="brand-icon">
+        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <div class="brand-name">TradeVault</div>
     </div>
+    <div class="brand-tagline">Professional Trading Journal</div>
   </div>
-
   <nav class="sidebar-nav">
-    <a href="#" class="nav-item active" data-view="dashboard" onclick="switchView('dashboard',this)">
+    <a class="nav-item active" data-view="dashboard" onclick="switchView('dashboard',this)">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
       Dashboard
     </a>
-    <a href="#" class="nav-item" data-view="journal" onclick="switchView('journal',this)">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    <a class="nav-item" data-view="journal" onclick="switchView('journal',this)">
+      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
       Trade Journal
     </a>
-    <a href="#" class="nav-item" data-view="add" onclick="switchView('add',this)">
+    <a class="nav-item" data-view="add" onclick="switchView('add',this)">
       <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
       Add Trade
     </a>
-    <a href="#" class="nav-item" data-view="report" onclick="switchView('report',this)">
-      <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    <div class="nav-sep"></div>
+    <a class="nav-item" data-view="report" onclick="switchView('report',this)">
+      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
       Analytics
     </a>
   </nav>
-
-  <div class="sidebar-footer">
-    <div class="capital-badge">
-      <div class="cap-label">Capital</div>
+  <div class="sidebar-bottom">
+    <div class="capital-box">
+      <div class="cap-row">
+        <div class="cap-label">Capital Deployed</div>
+        <div class="cap-dot"></div>
+      </div>
       <div class="cap-value" id="sideCapital">₹0</div>
+      <div class="cap-sub" id="sideCapSub">0 trades logged</div>
     </div>
   </div>
 </aside>
 
-<!-- ═══════════════════════════════════════════════
-     MAIN CONTENT
-═══════════════════════════════════════════════ -->
+<!-- MAIN -->
 <main class="main-content">
 
-  <!-- ── TOP BAR ── -->
+  <!-- TOPBAR -->
   <header class="topbar">
-    <button class="hamburger" id="hamburgerBtn" onclick="toggleSidebar()">
-      <span></span><span></span><span></span>
-    </button>
-    <div class="topbar-title" id="topbarTitle">Dashboard</div>
+    <button class="ham-btn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+    <div class="topbar-left">
+      <div class="topbar-title" id="topbarTitle">Dashboard</div>
+      <div class="topbar-badge" id="topbarBadge">Overview</div>
+    </div>
     <div class="topbar-actions">
-      <button class="btn-ghost" onclick="exportReport()">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export PDF
-      </button>
-      <button class="btn-ghost" onclick="exportCSV()">
+      <button class="btn-outline" onclick="exportCSV()">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export CSV
+      </button>
+      <button class="btn-outline" onclick="window.print()">
+        <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Print
       </button>
     </div>
   </header>
 
-  <!-- ══════════════════════════
-       VIEW: DASHBOARD
-  ══════════════════════════ -->
+  <!-- ── DASHBOARD ── -->
   <section class="view active" id="view-dashboard">
-
-    <!-- KPI STRIP -->
-    <div class="kpi-strip">
-      <div class="kpi-card">
-        <div class="kpi-icon profit">₹</div>
-        <div>
-          <div class="kpi-label">Total P&L</div>
-          <div class="kpi-val" id="kpiPnl">₹0</div>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon win">✓</div>
-        <div>
-          <div class="kpi-label">Win Rate</div>
-          <div class="kpi-val" id="kpiWin">0%</div>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon trades">T</div>
-        <div>
-          <div class="kpi-label">Total Trades</div>
-          <div class="kpi-val" id="kpiTrades">0</div>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon avg">~</div>
-        <div>
-          <div class="kpi-label">Avg P&L / Trade</div>
-          <div class="kpi-val" id="kpiAvg">₹0</div>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon rr">R</div>
-        <div>
-          <div class="kpi-label">Avg R:R Ratio</div>
-          <div class="kpi-val" id="kpiRR">0</div>
-        </div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon cap">C</div>
-        <div>
-          <div class="kpi-label">Capital Invested</div>
-          <div class="kpi-val" id="kpiCap">₹0</div>
-        </div>
+    <div class="view-header">
+      <div>
+        <div class="view-title">Dashboard</div>
+        <div class="view-sub" id="dashDate">Performance overview</div>
       </div>
     </div>
 
-    <!-- CHART ROW -->
-    <div class="chart-row">
-      <div class="chart-box wide">
-        <div class="chart-header">
-          <div class="chart-title">Cumulative P&amp;L</div>
-          <div class="chart-tag">Equity Curve</div>
+    <!-- KPIs -->
+    <div class="kpi-strip">
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Total P&amp;L</div>
+          <div class="kpi-icon c1">₹</div>
+        </div>
+        <div class="kpi-val" id="kpiPnl">₹0</div>
+        <div class="kpi-change" id="kpiPnlSub">Realised</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Win Rate</div>
+          <div class="kpi-icon c2">W%</div>
+        </div>
+        <div class="kpi-val" id="kpiWin">0%</div>
+        <div class="kpi-change" id="kpiWinSub">Wins / Closed</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Total Trades</div>
+          <div class="kpi-icon c3">#</div>
+        </div>
+        <div class="kpi-val" id="kpiTrades">0</div>
+        <div class="kpi-change" id="kpiTradesSub">All time</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Avg P&amp;L / Trade</div>
+          <div class="kpi-icon c4">~</div>
+        </div>
+        <div class="kpi-val" id="kpiAvg">₹0</div>
+        <div class="kpi-change">Per closed trade</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Avg R:R</div>
+          <div class="kpi-icon c5">R</div>
+        </div>
+        <div class="kpi-val" id="kpiRR">0</div>
+        <div class="kpi-change">Risk:Reward ratio</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-top">
+          <div class="kpi-label">Capital Invested</div>
+          <div class="kpi-icon c6">₹</div>
+        </div>
+        <div class="kpi-val" id="kpiCap">₹0</div>
+        <div class="kpi-change">Total deployed</div>
+      </div>
+    </div>
+
+    <!-- CHARTS ROW 1 -->
+    <div class="chart-grid" style="margin-bottom:14px">
+      <div class="chart-box">
+        <div class="chart-head">
+          <div class="section-label">Equity Curve</div>
+          <div class="section-tag">Cumulative P&amp;L</div>
         </div>
         <div class="chart-wrap"><canvas id="equityChart"></canvas></div>
       </div>
       <div class="chart-box">
-        <div class="chart-header">
-          <div class="chart-title">Win / Loss</div>
-          <div class="chart-tag">Distribution</div>
+        <div class="chart-head">
+          <div class="section-label">Win / Loss</div>
+          <div class="section-tag">Distribution</div>
         </div>
         <div class="chart-wrap"><canvas id="winLossChart"></canvas></div>
       </div>
     </div>
 
-    <!-- CHART ROW 2 -->
-    <div class="chart-row">
+    <!-- CHARTS ROW 2 -->
+    <div class="chart-grid-3" style="margin-bottom:22px">
       <div class="chart-box">
-        <div class="chart-header">
-          <div class="chart-title">P&amp;L by Stock</div>
-          <div class="chart-tag">Symbol Breakdown</div>
+        <div class="chart-head">
+          <div class="section-label">P&amp;L by Symbol</div>
+          <div class="section-tag">Breakdown</div>
         </div>
         <div class="chart-wrap"><canvas id="symbolChart"></canvas></div>
       </div>
       <div class="chart-box">
-        <div class="chart-header">
-          <div class="chart-title">Trade Type Mix</div>
-          <div class="chart-tag">Buy vs Sell</div>
+        <div class="chart-head">
+          <div class="section-label">Trade Type</div>
+          <div class="section-tag">Buy vs Sell</div>
         </div>
         <div class="chart-wrap"><canvas id="typeChart"></canvas></div>
       </div>
       <div class="chart-box">
-        <div class="chart-header">
-          <div class="chart-title">Monthly P&amp;L</div>
-          <div class="chart-tag">Month View</div>
+        <div class="chart-head">
+          <div class="section-label">Monthly P&amp;L</div>
+          <div class="section-tag">Month View</div>
         </div>
         <div class="chart-wrap"><canvas id="monthChart"></canvas></div>
       </div>
     </div>
 
-    <!-- RECENT TRADES TABLE -->
+    <!-- RECENT TRADES -->
     <div class="table-box">
-      <div class="table-header-row">
-        <div class="chart-title">Recent Trades</div>
-        <input class="search-input" id="dashSearch" placeholder="Search symbol…" oninput="renderRecentTable()" />
+      <div class="table-top">
+        <div>
+          <div class="section-label">Recent Trades</div>
+          <div style="font-size:11px;color:var(--text3);margin-top:2px">Last 20 closed &amp; open positions</div>
+        </div>
+        <input class="input-field" id="dashSearch" placeholder="Search symbol or date…" oninput="renderRecentTable()" style="width:220px"/>
       </div>
       <div class="table-scroll">
-        <table class="trade-table" id="recentTable">
+        <table class="data-table">
           <thead>
             <tr>
               <th>#</th><th>Date</th><th>Symbol</th><th>Type</th>
-              <th>Entry</th><th>Exit</th><th>SL</th><th>Points</th>
-              <th>P&L</th><th>% Return</th><th>Capital</th><th>R:R</th><th>Reason</th><th>Result</th>
+              <th>Entry</th><th>Exit</th><th>Stop Loss</th>
+              <th>Points</th><th>P&amp;L (₹)</th><th>Return %</th>
+              <th>Capital (₹)</th><th>R:R</th><th>Reason</th><th>Result</th>
             </tr>
           </thead>
           <tbody id="recentTbody"></tbody>
         </table>
       </div>
     </div>
-
   </section>
 
-  <!-- ══════════════════════════
-       VIEW: JOURNAL (All Trades)
-  ══════════════════════════ -->
+  <!-- ── JOURNAL ── -->
   <section class="view" id="view-journal">
     <div class="view-header">
-      <h2 class="view-title">Trade Journal</h2>
-      <div class="filter-row">
-        <input class="search-input" id="journalSearch" placeholder="Search…" oninput="renderJournal()" />
-        <select class="filter-select" id="filterMonth" onchange="renderJournal()">
-          <option value="">All Months</option>
-        </select>
-        <select class="filter-select" id="filterSymbol" onchange="renderJournal()">
-          <option value="">All Symbols</option>
-        </select>
-        <select class="filter-select" id="filterResult" onchange="renderJournal()">
-          <option value="">All Results</option>
-          <option value="win">Win</option>
-          <option value="loss">Loss</option>
-        </select>
+      <div>
+        <div class="view-title">Trade Journal</div>
+        <div class="view-sub">Full trade history with filters</div>
       </div>
+      <button class="btn-primary" onclick="switchView('add',document.querySelector('[data-view=add]'))">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#07080C;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Trade
+      </button>
     </div>
-
+    <div class="filter-row" style="margin-bottom:14px">
+      <input class="input-field" id="journalSearch" placeholder="Search…" oninput="renderJournal()" style="width:200px"/>
+      <select class="select-field" id="filterMonth" onchange="renderJournal()"><option value="">All Months</option></select>
+      <select class="select-field" id="filterSymbol" onchange="renderJournal()"><option value="">All Symbols</option></select>
+      <select class="select-field" id="filterResult" onchange="renderJournal()">
+        <option value="">All Results</option>
+        <option value="win">Win</option>
+        <option value="loss">Loss</option>
+        <option value="open">Open</option>
+      </select>
+    </div>
     <div class="table-box">
       <div class="table-scroll">
-        <table class="trade-table" id="journalTable">
+        <table class="data-table">
           <thead>
             <tr>
               <th>#</th><th>Date</th><th>Symbol</th><th>Type</th>
               <th>Entry</th><th>Exit</th><th>SL</th><th>SL Size</th>
               <th>T1</th><th>T2</th><th>T3</th><th>T4</th>
-              <th>Points</th><th>P&L</th><th>% Return</th>
-              <th>Capital</th><th>R:R</th><th>Reason</th><th>Result</th><th>Actions</th>
+              <th>Points</th><th>P&amp;L (₹)</th><th>Return %</th>
+              <th>Capital (₹)</th><th>R:R</th><th>Reason</th><th>Result</th><th>Actions</th>
             </tr>
           </thead>
           <tbody id="journalTbody"></tbody>
@@ -231,188 +252,184 @@
     </div>
   </section>
 
-  <!-- ══════════════════════════
-       VIEW: ADD TRADE
-  ══════════════════════════ -->
+  <!-- ── ADD TRADE ── -->
   <section class="view" id="view-add">
     <div class="view-header">
-      <h2 class="view-title" id="formTitle">Add New Trade</h2>
+      <div>
+        <div class="view-title" id="formTitle">Add New Trade</div>
+        <div class="view-sub">All calculated fields update automatically</div>
+      </div>
     </div>
+    <input type="hidden" id="editIndex" value="-1"/>
+    <div class="form-wrap">
 
-    <div class="form-card">
-      <input type="hidden" id="editIndex" value="-1" />
-
-      <!-- ROW 1 -->
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Date <span class="req">*</span></label>
-          <input type="date" id="fDate" class="form-input" />
-        </div>
-        <div class="form-group">
-          <label>Stock Symbol <span class="req">*</span></label>
-          <input type="text" id="fSymbol" class="form-input" placeholder="e.g. Nifty, BankNifty" />
-        </div>
-        <div class="form-group">
-          <label>Trade Type <span class="req">*</span></label>
-          <select id="fType" class="form-input">
-            <option value="">Select…</option>
-            <option>Buy Trade</option>
-            <option>Sell Trade</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Capital Invested (₹) <span class="req">*</span></label>
-          <input type="number" id="fCapital" class="form-input" placeholder="55000" oninput="calcPnl()" />
+      <div class="form-card">
+        <div class="form-card-title">Trade Information</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">Date <span class="req">*</span></div>
+            <input type="date" id="fDate" class="form-input"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Stock Symbol <span class="req">*</span></div>
+            <input type="text" id="fSymbol" class="form-input" placeholder="e.g. Nifty, BankNifty"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Trade Type <span class="req">*</span></div>
+            <select id="fType" class="form-input select-field">
+              <option value="">Select type…</option>
+              <option>Buy Trade</option>
+              <option>Sell Trade</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Capital Invested (₹) <span class="req">*</span></div>
+            <input type="number" id="fCapital" class="form-input" placeholder="55000" oninput="calcPnl()"/>
+          </div>
         </div>
       </div>
 
-      <!-- ROW 2 – Prices -->
-      <div class="form-section-title">Price Levels</div>
-      <div class="form-grid">
-        <div class="form-group">
-          <label>Entry Price <span class="req">*</span></label>
-          <input type="number" id="fEntry" class="form-input" placeholder="0.00" oninput="calcPnl()" />
-        </div>
-        <div class="form-group">
-          <label>Stop Loss <span class="req">*</span></label>
-          <input type="number" id="fSL" class="form-input" placeholder="0.00" oninput="calcPnl()" />
-        </div>
-        <div class="form-group">
-          <label>Exit Price</label>
-          <input type="number" id="fExit" class="form-input" placeholder="0.00" oninput="calcPnl()" />
-        </div>
-        <div class="form-group">
-          <label>Target 1</label>
-          <input type="number" id="fT1" class="form-input" placeholder="0.00" oninput="calcPnl()" />
-        </div>
-        <div class="form-group">
-          <label>Target 2</label>
-          <input type="number" id="fT2" class="form-input" placeholder="0.00" />
-        </div>
-        <div class="form-group">
-          <label>Target 3</label>
-          <input type="number" id="fT3" class="form-input" placeholder="0.00" />
-        </div>
-        <div class="form-group">
-          <label>Target 4</label>
-          <input type="number" id="fT4" class="form-input" placeholder="0.00" />
-        </div>
-      </div>
-
-      <!-- AUTO-CALCULATED -->
-      <div class="form-section-title">Auto-Calculated (from Excel formulas)</div>
-      <div class="form-grid calc-row">
-        <div class="form-group">
-          <label>SL Size</label>
-          <div class="calc-field" id="calcSLSize">—</div>
-        </div>
-        <div class="form-group">
-          <label>Points Captured / Lost</label>
-          <div class="calc-field" id="calcPoints">—</div>
-        </div>
-        <div class="form-group">
-          <label>Profit / Loss (₹)</label>
-          <div class="calc-field" id="calcPnL">—</div>
-        </div>
-        <div class="form-group">
-          <label>% Return</label>
-          <div class="calc-field" id="calcPct">—</div>
-        </div>
-        <div class="form-group">
-          <label>Risk : Reward Ratio</label>
-          <div class="calc-field" id="calcRR">—</div>
+      <div class="form-card">
+        <div class="form-card-title">Price Levels</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">Entry Price <span class="req">*</span></div>
+            <input type="number" id="fEntry" class="form-input" placeholder="0.00" oninput="calcPnl()"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Stop Loss <span class="req">*</span></div>
+            <input type="number" id="fSL" class="form-input" placeholder="0.00" oninput="calcPnl()"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Exit Price</div>
+            <input type="number" id="fExit" class="form-input" placeholder="0.00 (leave blank if open)" oninput="calcPnl()"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Target 1</div>
+            <input type="number" id="fT1" class="form-input" placeholder="0.00" oninput="calcPnl()"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Target 2</div>
+            <input type="number" id="fT2" class="form-input" placeholder="0.00"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Target 3</div>
+            <input type="number" id="fT3" class="form-input" placeholder="0.00"/>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Target 4</div>
+            <input type="number" id="fT4" class="form-input" placeholder="0.00"/>
+          </div>
         </div>
       </div>
 
-      <!-- ROW 3 -->
-      <div class="form-section-title">Additional Info</div>
-      <div class="form-grid">
-        <div class="form-group span2">
-          <label>Reason For Trade</label>
-          <input type="text" id="fReason" class="form-input" placeholder="Setup, breakout, reversal…" />
+      <div class="form-card">
+        <div class="form-card-title">Auto-Calculated Fields</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <div class="form-label">SL Size</div>
+            <div class="calc-val" id="calcSLSize">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Points Captured / Lost</div>
+            <div class="calc-val" id="calcPoints">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Profit / Loss (₹)</div>
+            <div class="calc-val" id="calcPnL">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Return %</div>
+            <div class="calc-val" id="calcPct">—</div>
+          </div>
+          <div class="form-group">
+            <div class="form-label">Risk : Reward Ratio</div>
+            <div class="calc-val" id="calcRR">—</div>
+          </div>
         </div>
-        <div class="form-group span2">
-          <label>System Based Objective / Notes</label>
-          <textarea id="fObjective" class="form-input form-textarea" placeholder="Trading plan objective or trade notes…"></textarea>
+        <div class="form-actions">
+          <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
+          <button class="btn-save" onclick="saveTrade()">Save Trade</button>
         </div>
       </div>
 
-      <div class="form-actions">
-        <button class="btn-cancel" onclick="cancelEdit()">Cancel</button>
-        <button class="btn-save" onclick="saveTrade()">Save Trade</button>
+      <div class="form-card">
+        <div class="form-card-title">Notes &amp; Context</div>
+        <div class="form-grid">
+          <div class="form-group fg-span2">
+            <div class="form-label">Reason For Trade</div>
+            <input type="text" id="fReason" class="form-input" placeholder="Setup, breakout, reversal, support test…"/>
+          </div>
+          <div class="form-group fg-span3">
+            <div class="form-label">System Notes / Objective</div>
+            <textarea id="fObjective" class="form-input form-textarea" placeholder="Trading plan objective, observations, what you learned…"></textarea>
+          </div>
+        </div>
       </div>
+
     </div>
   </section>
 
-  <!-- ══════════════════════════
-       VIEW: ANALYTICS / REPORT
-  ══════════════════════════ -->
+  <!-- ── ANALYTICS ── -->
   <section class="view" id="view-report">
     <div class="view-header">
-      <h2 class="view-title">Analytics Report</h2>
-      <button class="btn-ghost" onclick="exportReport()">
+      <div>
+        <div class="view-title">Analytics Report</div>
+        <div class="view-sub">Deep performance metrics</div>
+      </div>
+      <button class="btn-outline" onclick="window.print()">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Download Report
       </button>
     </div>
-
-    <!-- STATS GRID -->
-    <div class="stats-grid" id="statsGrid">
-      <!-- Filled by JS -->
-    </div>
-
-    <!-- STREAKS -->
-    <div class="chart-row">
-      <div class="chart-box wide">
-        <div class="chart-header">
-          <div class="chart-title">Daily P&amp;L Heatmap</div>
-          <div class="chart-tag">Performance Calendar</div>
+    <div class="stats-grid" id="statsGrid"></div>
+    <div class="chart-grid" style="margin-bottom:14px">
+      <div class="chart-box">
+        <div class="chart-head">
+          <div class="section-label">Daily P&amp;L Heatmap</div>
+          <div class="section-tag">Calendar View</div>
         </div>
-        <div id="heatmapWrap" class="heatmap-wrap"></div>
+        <div class="heatmap-wrap" id="heatmapWrap"></div>
       </div>
       <div class="chart-box">
-        <div class="chart-header">
-          <div class="chart-title">Risk / Reward Distribution</div>
-          <div class="chart-tag">Per Trade</div>
+        <div class="chart-head">
+          <div class="section-label">R:R Distribution</div>
+          <div class="section-tag">Per Trade</div>
         </div>
         <div class="chart-wrap"><canvas id="rrChart"></canvas></div>
       </div>
     </div>
-
-    <!-- DETAILED STATS TABLE -->
-    <div class="table-box" id="reportTableBox">
-      <div class="chart-title" style="padding:1.2rem 1.5rem 0.5rem">Full Trade Statistics</div>
+    <div class="table-box">
+      <div class="table-top">
+        <div class="section-label">Full Statistics Table</div>
+      </div>
       <div class="table-scroll">
-        <table class="trade-table" id="reportTable">
-          <thead>
-            <tr>
-              <th>Metric</th><th>Value</th><th>Metric</th><th>Value</th>
-            </tr>
-          </thead>
+        <table class="data-table" id="reportTable">
+          <thead><tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr></thead>
           <tbody id="reportTbody"></tbody>
         </table>
       </div>
     </div>
-
   </section>
 
 </main>
 
-<!-- EDIT / DELETE MODAL -->
+<!-- MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-title" id="modalTitle">Trade Details</div>
     <div id="modalBody"></div>
     <div class="modal-actions">
       <button class="btn-cancel" onclick="closeModal()">Close</button>
-      <button class="btn-danger" id="modalDeleteBtn" onclick="">Delete Trade</button>
-      <button class="btn-save" id="modalEditBtn" onclick="">Edit Trade</button>
+      <button class="btn-danger" id="modalDeleteBtn">Delete</button>
+      <button class="btn-save" id="modalEditBtn">Edit Trade</button>
     </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<!-- External JS -->
 <script src="app.js"></script>
 </body>
 </html>
