@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -14,6 +14,17 @@
   
   <!-- External CSS -->
   <link rel="stylesheet" href="style.css"/>
+  
+  <!-- Theme Initialization Script (prevents flash of wrong theme) -->
+  <script>
+    (function() {
+      const THEME_KEY = 'tradevault_theme';
+      const saved = localStorage.getItem(THEME_KEY);
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = saved || (prefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 </head>
 <body>
 
@@ -70,6 +81,28 @@
       <div class="topbar-badge" id="topbarBadge">Overview</div>
     </div>
     <div class="topbar-actions">
+      
+      <!-- 🔀 THEME TOGGLE BUTTON (MERGED HERE) -->
+      <button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">
+        <svg id="themeIcon" viewBox="0 0 24 24">
+          <!-- Sun icon (visible in light mode) -->
+          <g class="sun-icon" style="display:none">
+            <circle cx="12" cy="12" r="4"/>
+            <line x1="12" y1="2" x2="12" y2="5"/>
+            <line x1="12" y1="19" x2="12" y2="22"/>
+            <line x1="2" y1="12" x2="5" y2="12"/>
+            <line x1="19" y1="12" x2="22" y2="12"/>
+            <line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/>
+            <line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/>
+            <line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>
+            <line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/>
+          </g>
+          <!-- Moon icon (visible in dark mode) -->
+          <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+        </svg>
+      </button>
+      <!-- END THEME TOGGLE -->
+      
       <button class="btn-outline" onclick="exportCSV()">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export CSV
@@ -431,5 +464,62 @@
 
 <!-- External JS -->
 <script src="app.js"></script>
+
+<!-- Theme Toggle JavaScript Functions -->
+<script>
+/* ═══ THEME MANAGEMENT ═══ */
+const THEME_KEY = 'tradevault_theme';
+
+function getPreferredTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved) return saved;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+  
+  // Update theme toggle icon visibility
+  const sunIcon = document.querySelector('.sun-icon');
+  const moonIcon = document.querySelector('.moon-icon');
+  if (sunIcon && moonIcon) {
+    if (theme === 'light') {
+      sunIcon.style.display = 'block';
+      moonIcon.style.display = 'none';
+    } else {
+      sunIcon.style.display = 'none';
+      moonIcon.style.display = 'block';
+    }
+  }
+  
+  // Re-render charts with theme-aware colors if on dashboard/analytics
+  if (typeof renderDashboard === 'function' && document.getElementById('view-dashboard')?.classList.contains('active')) {
+    setTimeout(renderDashboard, 50);
+  }
+  if (typeof renderAnalytics === 'function' && document.getElementById('view-report')?.classList.contains('active')) {
+    setTimeout(renderAnalytics, 50);
+  }
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  localStorage.setItem(THEME_KEY, next);
+  applyTheme(next);
+  // Show toast notification if toast function exists
+  if (typeof toast === 'function') {
+    toast(`Switched to ${next} mode`, 'success');
+  }
+}
+
+// Apply theme on DOM ready
+document.addEventListener('DOMContentLoaded', function() {
+  const savedTheme = document.documentElement.getAttribute('data-theme');
+  if (!savedTheme) {
+    applyTheme(getPreferredTheme());
+  }
+});
+</script>
+
 </body>
 </html>
