@@ -77,6 +77,22 @@ function enrich(t) {
   return {...t, slSize, points, pnl, pct, rr, result};
 }
 
+/* ═══ TARGET CALCULATION (Excel Style - AUTO) ═══ */
+function calcTargets(entry, sl, tradeType) {
+  if (!isNum(entry) || !isNum(sl)) {
+    return { t1: null, t2: null, t3: null, t4: null };
+  }
+  const e = Number(entry), s = Number(sl);
+  const risk = Math.abs(e - s);
+  const isBuy = tradeType === 'Buy Trade';
+  return {
+    t1: isBuy ? e + risk : e - risk,
+    t2: isBuy ? e + 2 * risk : e - 2 * risk,
+    t3: isBuy ? e + 3 * risk : e - 3 * risk,
+    t4: isBuy ? e + 4 * risk : e - 4 * risk
+  };
+}
+
 /* ═══ FORMATTERS ═══ */
 const fmt = {
   currency(v, d=0) {
@@ -143,7 +159,6 @@ function renderDashboard() {
   const avgRR    = rrVals.length ? rrVals.reduce((a,b)=>a+b,0)/rrVals.length : 0;
   const totalCap = rich.reduce((a,t)=>a+(t.capital||0),0);
 
-  // KPIs
   set('kpiPnl',  fmt.currency(totalPnl,0)); cls('kpiPnl',pnlCls(totalPnl));
   set('kpiWin',  fmt.pct(winRate));
   set('kpiTrades', rich.length);
@@ -156,7 +171,6 @@ function renderDashboard() {
   set('sideCapital', fmt.currency(totalCap,0));
   set('sideCapSub', `${rich.length} trade${rich.length!==1?'s':''} logged`);
 
-  // Equity Curve
   destroyChart('equityChart');
   const sorted = [...rich].filter(t=>t.date&&t.result!=='open').sort((a,b)=>new Date(a.date)-new Date(b.date));
   let running = 0;
@@ -174,7 +188,6 @@ function renderDashboard() {
     options:baseOpts(30),
   });
 
-  // Win/Loss Donut
   destroyChart('winLossChart');
   const openCount = rich.filter(t=>t.result==='open').length;
   CHARTS.winLossChart = new Chart(document.getElementById('winLossChart'), {
@@ -195,7 +208,6 @@ function renderDashboard() {
     }
   });
 
-  // P&L by Symbol
   destroyChart('symbolChart');
   const bySymbol = {};
   rich.forEach(t=>{ if(!t.symbol) return; bySymbol[t.symbol]=(bySymbol[t.symbol]||0)+(t.pnl||0); });
@@ -212,7 +224,6 @@ function renderDashboard() {
     options:{...baseOpts(),plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:ctx=>` ${fmt.currency(ctx.raw,0)}`}}}},
   });
 
-  // Trade Type
   destroyChart('typeChart');
   const byType = {};
   rich.forEach(t=>{ const k=t.tradeType||'Unknown'; byType[k]=(byType[k]||0)+1; });
@@ -234,7 +245,6 @@ function renderDashboard() {
     }
   });
 
-  // Monthly P&L
   destroyChart('monthChart');
   const byMonth = {};
   rich.forEach(t=>{ const k=fmt.monthKey(t.date); byMonth[k]=(byMonth[k]||0)+(t.pnl||0); });
@@ -252,8 +262,6 @@ function renderDashboard() {
   });
 
   renderRecentTable();
-
-  // Date
   const now = new Date();
   set('dashDate', `Updated ${now.toLocaleDateString('en-IN',{day:'2-digit',month:'long',year:'numeric'})}`);
 }
@@ -392,12 +400,15 @@ function saveTrade() {
   if(!type)       return toast('Please select a trade type.','error');
   if(isNaN(entry))return toast('Please enter a valid entry price.','error');
   if(isNaN(sl))   return toast('Please enter a valid stop loss.','error');
+  
+  // Auto-calculate targets before saving
+  const targets = calcTargets(entry, sl, type);
+  
   const trade = {
     date, symbol, tradeType:type,
     capital:isNaN(cap)?null:cap, entryPrice:entry, stopLoss:sl,
     exitPrice:parseFloat(getv('fExit'))||null,
-    target1:parseFloat(getv('fT1'))||null, target2:parseFloat(getv('fT2'))||null,
-    target3:parseFloat(getv('fT3'))||null, target4:parseFloat(getv('fT4'))||null,
+    target1: targets.t1, target2: targets.t2, target3: targets.t3, target4: targets.t4,
     reason:getv('fReason'), objective:getv('fObjective'),
   };
   const idx = parseInt(document.getElementById('editIndex').value);
@@ -413,25 +424,40 @@ function deleteTrade(idx) {
   toast('Trade deleted.','success'); renderAll();
 }
 
+/* ═══ UPDATED CALC PNL (With Auto Targets) ═══ */
 function calcPnl() {
-  const entry=parseFloat(getv('fEntry')), sl=parseFloat(getv('fSL'));
-  const exit=parseFloat(getv('fExit')), cap=parseFloat(getv('fCapital')), t1=parseFloat(getv('fT1'));
-  const slSize=calcSLSize(entry,sl);
-  const points=calcPoints(entry,isNaN(exit)?null:exit,isNaN(sl)?null:sl);
-  const pnl=calcProfitLoss(entry,isNaN(exit)?null:exit,isNaN(sl)?null:sl,cap);
-  const pct=calcPctReturn(entry,isNaN(exit)?null:exit,isNaN(sl)?null:sl);
-  const rr=calcRR(entry,sl,t1);
+  const entry = parseFloat(getv('fEntry'));
+  const sl = parseFloat(getv('fSL'));
+  const exit = parseFloat(getv('fExit'));
+  const cap = parseFloat(getv('fCapital'));
+  const tradeType = getv('fType');
+  
+  // ✅ AUTO CALCULATE TARGETS (Excel Style)
+  const targets = calcTargets(entry, sl, tradeType);
+  setv('fT1', targets.t1 !== null ? targets.t1.toFixed(2) : '');
+  setv('fT2', targets.t2 !== null ? targets.t2.toFixed(2) : '');
+  setv('fT3', targets.t3 !== null ? targets.t3.toFixed(2) : '');
+  setv('fT4', targets.t4 !== null ? targets.t4.toFixed(2) : '');
+  
+  // Existing calculations
+  const slSize = calcSLSize(entry, sl);
+  const points = calcPoints(entry, isNaN(exit) ? null : exit, isNaN(sl) ? null : sl);
+  const pnl = calcProfitLoss(entry, isNaN(exit) ? null : exit, isNaN(sl) ? null : sl, cap);
+  const pct = calcPctReturn(entry, isNaN(exit) ? null : exit, isNaN(sl) ? null : sl);
+  const rr = calcRR(entry, sl, targets.t1);
 
   const setCalc = (id, val, fmt_fn, clr_fn) => {
-    const e=document.getElementById(id); if(!e) return;
-    e.textContent = val!==null ? fmt_fn(val) : '—';
-    e.style.color  = val!==null && clr_fn ? clr_fn(val) : 'var(--cyan)';
+    const e = document.getElementById(id); 
+    if (!e) return;
+    e.textContent = val !== null ? fmt_fn(val) : '—';
+    e.style.color = val !== null && clr_fn ? clr_fn(val) : 'var(--cyan)';
   };
-  setCalc('calcSLSize', slSize,  v=>fmt.num(v,2), null);
-  setCalc('calcPoints', points,  v=>fmt.num(v,2), pnlClr);
-  setCalc('calcPnL',    pnl,     v=>fmt.currency(v,0), pnlClr);
-  setCalc('calcPct',    pct,     v=>fmt.pct(v), pnlClr);
-  setCalc('calcRR',     rr,      v=>fmt.num(v,2), null);
+  
+  setCalc('calcSLSize', slSize, v => fmt.num(v, 2), null);
+  setCalc('calcPoints', points, v => fmt.num(v, 2), pnlClr);
+  setCalc('calcPnL', pnl, v => fmt.currency(v, 0), pnlClr);
+  setCalc('calcPct', pct, v => fmt.pct(v), pnlClr);
+  setCalc('calcRR', rr, v => fmt.num(v, 2), null);
 }
 
 /* ═══ ANALYTICS ═══ */

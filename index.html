@@ -82,10 +82,9 @@
     </div>
     <div class="topbar-actions">
       
-      <!-- 🔀 THEME TOGGLE BUTTON (MERGED HERE) -->
+      <!-- 🔀 THEME TOGGLE BUTTON -->
       <button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">
         <svg id="themeIcon" viewBox="0 0 24 24">
-          <!-- Sun icon (visible in light mode) -->
           <g class="sun-icon" style="display:none">
             <circle cx="12" cy="12" r="4"/>
             <line x1="12" y1="2" x2="12" y2="5"/>
@@ -97,11 +96,9 @@
             <line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>
             <line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/>
           </g>
-          <!-- Moon icon (visible in dark mode) -->
           <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
         </svg>
       </button>
-      <!-- END THEME TOGGLE -->
       
       <button class="btn-outline" onclick="exportCSV()">
         <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -309,7 +306,8 @@
           </div>
           <div class="form-group">
             <div class="form-label">Trade Type <span class="req">*</span></div>
-            <select id="fType" class="form-input select-field">
+            <!-- ✅ UPDATED: onchange="calcPnl()" added -->
+            <select id="fType" class="form-input select-field" onchange="calcPnl()">
               <option value="">Select type…</option>
               <option>Buy Trade</option>
               <option>Sell Trade</option>
@@ -337,22 +335,25 @@
             <div class="form-label">Exit Price</div>
             <input type="number" id="fExit" class="form-input" placeholder="0.00 (leave blank if open)" oninput="calcPnl()"/>
           </div>
+          
+          <!-- ✅ UPDATED: Target 1-4 inputs with readonly + auto styling -->
           <div class="form-group">
             <div class="form-label">Target 1</div>
-            <input type="number" id="fT1" class="form-input" placeholder="0.00" oninput="calcPnl()"/>
+            <input type="number" id="fT1" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/>
           </div>
           <div class="form-group">
             <div class="form-label">Target 2</div>
-            <input type="number" id="fT2" class="form-input" placeholder="0.00"/>
+            <input type="number" id="fT2" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/>
           </div>
           <div class="form-group">
             <div class="form-label">Target 3</div>
-            <input type="number" id="fT3" class="form-input" placeholder="0.00"/>
+            <input type="number" id="fT3" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/>
           </div>
           <div class="form-group">
             <div class="form-label">Target 4</div>
-            <input type="number" id="fT4" class="form-input" placeholder="0.00"/>
+            <input type="number" id="fT4" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/>
           </div>
+          
         </div>
       </div>
 
@@ -479,7 +480,6 @@ function getPreferredTheme() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   
-  // Update theme toggle icon visibility
   const sunIcon = document.querySelector('.sun-icon');
   const moonIcon = document.querySelector('.moon-icon');
   if (sunIcon && moonIcon) {
@@ -492,7 +492,6 @@ function applyTheme(theme) {
     }
   }
   
-  // Re-render charts with theme-aware colors if on dashboard/analytics
   if (typeof renderDashboard === 'function' && document.getElementById('view-dashboard')?.classList.contains('active')) {
     setTimeout(renderDashboard, 50);
   }
@@ -506,13 +505,11 @@ function toggleTheme() {
   const next = current === 'dark' ? 'light' : 'dark';
   localStorage.setItem(THEME_KEY, next);
   applyTheme(next);
-  // Show toast notification if toast function exists
   if (typeof toast === 'function') {
     toast(`Switched to ${next} mode`, 'success');
   }
 }
 
-// Apply theme on DOM ready
 document.addEventListener('DOMContentLoaded', function() {
   const savedTheme = document.documentElement.getAttribute('data-theme');
   if (!savedTheme) {
