@@ -115,6 +115,11 @@
         <div class="view-title">Dashboard</div>
         <div class="view-sub" id="dashDate">Performance overview</div>
       </div>
+      <!-- ✅ Add Trade Button Added Here -->
+      <button class="btn-primary" onclick="switchView('add',document.querySelector('[data-view=add]'))">
+        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#07080C;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Add Trade
+      </button>
     </div>
     <div class="kpi-strip">
       <div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Total P&amp;L</div><div class="kpi-icon c1">₹</div></div><div class="kpi-val" id="kpiPnl">₹0</div><div class="kpi-change" id="kpiPnlSub">Realised</div></div>
