@@ -1383,3 +1383,13 @@ body{
   fill: none;
   stroke-width: 2;
 }
+/* ===== THEME ICON TOGGLES ===== */
+[data-theme="dark"] .sun-icon { display: none; }
+[data-theme="dark"] .moon-icon { display: block; }
+[data-theme="light"] .sun-icon { display: block; }
+[data-theme="light"] .moon-icon { display: none; }
+
+/* Ensure SVG paths inherit visibility */
+.sun-icon, .moon-icon {
+  transition: opacity 0.2s ease;
+}

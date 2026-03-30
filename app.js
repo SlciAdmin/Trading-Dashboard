@@ -77,6 +77,50 @@ function enrich(t) {
   return {...t, slSize, points, pnl, pct, rr, result};
 }
 
+/* ═══ THEME MANAGEMENT - FIXED ═══ */
+const THEME_KEY = 'tradevault_theme';
+
+function getPreferredTheme() {
+  const saved = localStorage.getItem(THEME_KEY);
+  if (saved) return saved;
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+}
+
+function applyTheme(theme) {
+  // Set data attribute - CSS handles icon visibility now
+  document.documentElement.setAttribute('data-theme', theme);
+  localStorage.setItem(THEME_KEY, theme);
+  
+  // Re-render charts if views are active (they use theme colors)
+  setTimeout(() => {
+    if (typeof renderDashboard === 'function' && 
+        document.getElementById('view-dashboard')?.classList.contains('active')) {
+      renderDashboard();
+    }
+    if (typeof renderAnalytics === 'function' && 
+        document.getElementById('view-report')?.classList.contains('active')) {
+      renderAnalytics();
+    }
+  }, 100);
+}
+
+function toggleTheme() {
+  const current = document.documentElement.getAttribute('data-theme') || 'dark';
+  const next = current === 'dark' ? 'light' : 'dark';
+  
+  applyTheme(next);
+  
+  // Show toast if function exists
+  if (typeof toast === 'function') {
+    toast(`Switched to ${next} mode`, 'success');
+  }
+}
+
+// Initialize theme ONCE after DOM is ready
+document.addEventListener('DOMContentLoaded', function() {
+  applyTheme(getPreferredTheme());
+});
+
 /* ═══ TARGET CALCULATION (Excel Style - AUTO) ═══ */
 function calcTargets(entry, sl, tradeType) {
   if (!isNum(entry) || !isNum(sl)) {
