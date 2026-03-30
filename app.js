@@ -295,6 +295,14 @@ function renderJournalPage() {
     if(fR && t.result!==fR) return false;
     return true;
   });
+  
+  // ✅ Show/hide delete button based on filters
+  const deleteBtn = document.getElementById('deleteFilteredBtn');
+  if(deleteBtn) {
+    const hasFilters = q || fM || fS || fR;
+    deleteBtn.style.display = (hasFilters && filt.length > 0) ? 'flex' : 'none';
+  }
+  
   const total=filt.length, pages=Math.max(1,Math.ceil(total/PAGE_SIZE));
   if(jPage>pages) jPage=pages;
   const slice = filt.slice((jPage-1)*PAGE_SIZE, jPage*PAGE_SIZE);
@@ -934,6 +942,59 @@ function getPeriodTrades() {
     case 'year': return enriched.filter(t => { const d = new Date(t.date); return d.getFullYear() === currentDate.getFullYear(); });
     default: return [];
   }
+}
+
+/* ═══ DELETE FILTERED TRADES ═══ */
+function deleteFilteredTrades() {
+  const q = (document.getElementById('journalSearch')?.value || '').toLowerCase();
+  const fM = document.getElementById('filterMonth')?.value || '';
+  const fS = document.getElementById('filterSymbol')?.value || '';
+  const fR = document.getElementById('filterResult')?.value || '';
+  
+  // Get all trades with their indices
+  const rich = trades.map((t, i) => ({...enrich(t), _i: i}));
+  
+  // Filter trades based on current filters
+  const filtered = rich.filter(t => {
+    if(q && !((t.symbol||'').toLowerCase().includes(q) || (t.date||'').includes(q) || (t.reason||'').toLowerCase().includes(q))) return false;
+    if(fM && fmt.monthKey(t.date) !== fM) return false;
+    if(fS && t.symbol !== fS) return false;
+    if(fR && t.result !== fR) return false;
+    return true;
+  });
+  
+  if(filtered.length === 0) {
+    toast('No trades to delete', 'error');
+    return;
+  }
+  
+  const confirmMsg = `Delete ${filtered.length} trade${filtered.length !== 1 ? 's' : ''}? This cannot be undone.`;
+  if(!confirm(confirmMsg)) return;
+  
+  // Get indices to delete (in reverse order to avoid index shifting)
+  const indicesToDelete = filtered.map(t => t._i).sort((a, b) => b - a);
+  
+  // Delete trades
+  indicesToDelete.forEach(idx => {
+    trades.splice(idx, 1);
+  });
+  
+  // Save and refresh
+  saveTrades(trades);
+  toast(`${filtered.length} trade${filtered.length !== 1 ? 's' : ''} deleted successfully`, 'success');
+  
+  // Clear filters and re-render
+  document.getElementById('journalSearch').value = '';
+  document.getElementById('filterMonth').value = '';
+  document.getElementById('filterSymbol').value = '';
+  document.getElementById('filterResult').value = '';
+  
+  renderJournal();
+  renderDashboard();
+  
+  // Hide delete button
+  const deleteBtn = document.getElementById('deleteFilteredBtn');
+  if(deleteBtn) deleteBtn.style.display = 'none';
 }
 
 function showDayDetails(dateKey) {

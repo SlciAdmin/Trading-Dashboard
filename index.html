@@ -161,14 +161,20 @@
         Add Trade
       </button>
     </div>
-    <div class="filter-row" style="margin-bottom:14px">
-      <input class="input-field" id="journalSearch" placeholder="Search…" oninput="renderJournal()" style="width:200px"/>
-      <select class="select-field" id="filterMonth" onchange="renderJournal()"><option value="">All Months</option></select>
-      <select class="select-field" id="filterSymbol" onchange="renderJournal()"><option value="">All Symbols</option></select>
-      <select class="select-field" id="filterResult" onchange="renderJournal()">
-        <option value="">All Results</option><option value="win">Win</option><option value="loss">Loss</option><option value="open">Open</option>
-      </select>
-    </div>
+    <!-- Replace the filter-row section in Trade Journal with this -->
+<div class="filter-row" style="margin-bottom:14px">
+  <input class="input-field" id="journalSearch" placeholder="Search…" oninput="renderJournal()" style="width:200px"/>
+  <select class="select-field" id="filterMonth" onchange="renderJournal()"><option value="">All Months</option></select>
+  <select class="select-field" id="filterSymbol" onchange="renderJournal()"><option value="">All Symbols</option></select>
+  <select class="select-field" id="filterResult" onchange="renderJournal()">
+    <option value="">All Results</option><option value="win">Win</option><option value="loss">Loss</option><option value="open">Open</option>
+  </select>
+  <!-- ✅ DELETE FILTERED TRADES BUTTON -->
+  <button class="btn-danger" id="deleteFilteredBtn" onclick="deleteFilteredTrades()" style="display:none;margin-left:auto">
+    <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+    Delete Filtered
+  </button>
+</div>
     <div class="table-box">
       <div class="table-scroll">
         <table class="data-table">

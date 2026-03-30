@@ -1350,4 +1350,36 @@ body{
     padding: 4px 10px;
     font-size: 10px;
   }
+}/* Add to style.css if not present */
+.btn-danger {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 77, 109, 0.15);
+  color: var(--rose);
+  border: 1px solid rgba(255, 77, 109, 0.3);
+  border-radius: var(--r-sm);
+  padding: 7px 14px;
+  font-size: 11px;
+  font-family: 'DM Mono', monospace;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.btn-danger:hover {
+  background: rgba(255, 77, 109, 0.25);
+  border-color: var(--rose);
+  color: var(--rose);
+  transform: translateY(-1px);
+}
+
+.btn-danger svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
 }
