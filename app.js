@@ -401,7 +401,6 @@ function saveTrade() {
   if(isNaN(entry))return toast('Please enter a valid entry price.','error');
   if(isNaN(sl))   return toast('Please enter a valid stop loss.','error');
   
-  // Auto-calculate targets before saving
   const targets = calcTargets(entry, sl, type);
   
   const trade = {
@@ -424,7 +423,7 @@ function deleteTrade(idx) {
   toast('Trade deleted.','success'); renderAll();
 }
 
-/* ═══ UPDATED CALC PNL (With Auto Targets) ═══ */
+/* ═══ CALC PNL ═══ */
 function calcPnl() {
   const entry = parseFloat(getv('fEntry'));
   const sl = parseFloat(getv('fSL'));
@@ -432,14 +431,12 @@ function calcPnl() {
   const cap = parseFloat(getv('fCapital'));
   const tradeType = getv('fType');
   
-  // ✅ AUTO CALCULATE TARGETS (Excel Style)
   const targets = calcTargets(entry, sl, tradeType);
   setv('fT1', targets.t1 !== null ? targets.t1.toFixed(2) : '');
   setv('fT2', targets.t2 !== null ? targets.t2.toFixed(2) : '');
   setv('fT3', targets.t3 !== null ? targets.t3.toFixed(2) : '');
   setv('fT4', targets.t4 !== null ? targets.t4.toFixed(2) : '');
   
-  // Existing calculations
   const slSize = calcSLSize(entry, sl);
   const points = calcPoints(entry, isNaN(exit) ? null : exit, isNaN(sl) ? null : sl);
   const pnl = calcProfitLoss(entry, isNaN(exit) ? null : exit, isNaN(sl) ? null : sl, cap);
@@ -524,7 +521,7 @@ function renderAnalytics() {
     tbody.innerHTML = rows.join('');
   }
 
-  renderHeatmap(rich);
+  // renderHeatmap(rich); // Replaced by calendar
 
   destroyChart('rrChart');
   const buckets=[0,0.5,1,1.5,2,2.5,3];
@@ -538,20 +535,9 @@ function renderAnalytics() {
     },
     options:baseOpts(),
   });
-}
-
-function renderHeatmap(rich) {
-  const wrap=document.getElementById('heatmapWrap'); if(!wrap) return;
-  const byDate={};
-  rich.forEach(t=>{ if(!t.date) return; const k=t.date.substring(0,10); byDate[k]=(byDate[k]||0)+(t.pnl||0); });
-  const dates=Object.keys(byDate).sort();
-  if(!dates.length){ wrap.innerHTML='<div style="color:var(--text3);font-size:11px;padding:12px">No data yet — add trades to see the heatmap.</div>'; return; }
-  const max = Math.max(...Object.values(byDate).map(Math.abs)) || 1;
-  wrap.innerHTML = dates.map(d=>{
-    const v=byDate[d], int=Math.min(1,Math.abs(v)/max);
-    const bg = v>0 ? `rgba(0,200,150,${0.12+int*0.75})` : v<0 ? `rgba(255,77,109,${0.12+int*0.75})` : 'rgba(255,255,255,0.04)';
-    return `<div class="hm-cell" style="background:${bg}">${new Date(d).getDate()}<div class="hm-tip">${fmt.date(d)}: ${fmt.currency(v,0)}</div></div>`;
-  }).join('');
+  
+  // ✅ Initialize Calendar
+  initCalendar();
 }
 
 /* ═══ EXPORT ═══ */
@@ -655,3 +641,319 @@ document.addEventListener('DOMContentLoaded',()=>{
   renderDashboard();
   populateFilters();
 });
+
+/* ════════════════════════════════════════════════════════════════ */
+/* ═══ CALENDAR FUNCTIONALITY - MERGED BELOW ═══ */
+/* ════════════════════════════════════════════════════════════════ */
+
+let calendarPeriod = 'month';
+let currentDate = new Date();
+
+function setCalendarPeriod(period) {
+  calendarPeriod = period;
+  document.querySelectorAll('.period-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.period === period);
+  });
+  renderCalendar();
+}
+
+function navigateCalendar(direction) {
+  if (direction === 0) {
+    currentDate = new Date();
+  } else {
+    const newDate = new Date(currentDate);
+    switch(calendarPeriod) {
+      case 'day': newDate.setDate(newDate.getDate() + direction); break;
+      case 'week': newDate.setDate(newDate.getDate() + (direction * 7)); break;
+      case 'month': newDate.setMonth(newDate.getMonth() + direction); break;
+      case 'quarter': newDate.setMonth(newDate.getMonth() + (direction * 3)); break;
+      case 'year': newDate.setFullYear(newDate.getFullYear() + direction); break;
+    }
+    currentDate = newDate;
+  }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const label = document.getElementById('currentPeriodLabel');
+  const summary = document.getElementById('calendarSummary');
+  if (!grid) return;
+  
+  grid.className = 'calendar-grid ' + calendarPeriod + '-view';
+  let cells = [], periodLabel = '';
+  
+  switch(calendarPeriod) {
+    case 'day':
+      cells = renderDayView();
+      periodLabel = currentDate.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
+      break;
+    case 'week':
+      cells = renderWeekView();
+      const weekStart = getWeekStart(currentDate);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      periodLabel = `Week of ${weekStart.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} - ${weekEnd.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
+      break;
+    case 'month':
+      cells = renderMonthView();
+      periodLabel = currentDate.toLocaleDateString('en-IN', { month:'long', year:'numeric' });
+      break;
+    case 'quarter':
+      cells = renderQuarterView();
+      const quarter = Math.floor(currentDate.getMonth() / 3) + 1;
+      periodLabel = `Q${quarter} ${currentDate.getFullYear()}`;
+      break;
+    case 'year':
+      cells = renderYearView();
+      periodLabel = currentDate.getFullYear().toString();
+      break;
+  }
+  
+  label.textContent = periodLabel;
+  grid.innerHTML = cells.join('');
+  renderCalendarSummary();
+}
+
+function renderDayView() {
+  const cells = [];
+  const dateKey = formatDateKey(currentDate);
+  const dayData = getDayData(dateKey);
+  const isToday = isSameDay(currentDate, new Date());
+  const cellClass = getCellClass(dayData.pnl);
+  
+  cells.push(`
+    <div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')">
+      <div class="cell-header">
+        <span class="cell-date">${currentDate.getDate()}</span>
+        <span>${currentDate.toLocaleDateString('en-IN',{weekday:'short'})}</span>
+      </div>
+      ${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades} trade${dayData.trades!==1?'s':''}</div>`:'<div class="cell-empty">No trades</div>'}
+    </div>`);
+  return cells;
+}
+
+function renderWeekView() {
+  const cells = [], weekStart = getWeekStart(currentDate);
+  for(let i=0;i<7;i++) {
+    const date = new Date(weekStart);
+    date.setDate(date.getDate() + i);
+    const dateKey = formatDateKey(date);
+    const dayData = getDayData(dateKey);
+    const isToday = isSameDay(date, new Date());
+    const cellClass = getCellClass(dayData.pnl);
+    cells.push(`
+      <div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')">
+        <div class="cell-header">
+          <span class="cell-date">${date.getDate()}</span>
+          <span>${date.toLocaleDateString('en-IN',{weekday:'short'})}</span>
+        </div>
+        ${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades}T</div>`:'<div class="cell-empty">-</div>'}
+      </div>`);
+  }
+  return cells;
+}
+
+function renderMonthView() {
+  const cells = [];
+  const year = currentDate.getFullYear(), month = currentDate.getMonth();
+  const firstDay = new Date(year, month, 1), lastDay = new Date(year, month+1, 0);
+  const startingDay = firstDay.getDay(), totalDays = lastDay.getDate();
+  
+  for(let i=0;i<startingDay;i++) cells.push('<div class="calendar-cell neutral"><div class="cell-empty"></div></div>');
+  
+  for(let day=1;day<=totalDays;day++) {
+    const date = new Date(year, month, day);
+    const dateKey = formatDateKey(date);
+    const dayData = getDayData(dateKey);
+    const isToday = isSameDay(date, new Date());
+    const cellClass = getCellClass(dayData.pnl);
+    cells.push(`
+      <div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')">
+        <div class="cell-header"><span class="cell-date">${day}</span></div>
+        ${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades}T</div>`:'<div class="cell-empty">-</div>'}
+      </div>`);
+  }
+  return cells;
+}
+
+function renderQuarterView() {
+  const cells = [];
+  const year = currentDate.getFullYear();
+  const startMonth = Math.floor(currentDate.getMonth()/3)*3;
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  
+  for(let i=0;i<3;i++) {
+    const month = startMonth + i;
+    const monthData = getMonthData(year, month);
+    const cellClass = getCellClass(monthData.pnl);
+    cells.push(`
+      <div class="calendar-cell ${cellClass}" onclick="showMonthDetails(${year},${month})">
+        <div class="cell-header"><span class="cell-date">${months[month]}</span></div>
+        ${monthData.pnl!==null?`<div class="cell-pnl ${monthData.pnl>=0?'profit':'loss'}">${fmt.currency(monthData.pnl,0)}</div><div class="cell-trades">${monthData.trades} trades</div>`:'<div class="cell-empty">No trades</div>'}
+      </div>`);
+  }
+  return cells;
+}
+
+function renderYearView() {
+  const cells = [];
+  const year = currentDate.getFullYear();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  
+  for(let month=0;month<12;month++) {
+    const monthData = getMonthData(year, month);
+    const cellClass = getCellClass(monthData.pnl);
+    cells.push(`
+      <div class="calendar-cell ${cellClass}" onclick="showMonthDetails(${year},${month})">
+        <div class="cell-header"><span class="cell-date">${months[month]}</span></div>
+        ${monthData.pnl!==null?`<div class="cell-pnl ${monthData.pnl>=0?'profit':'loss'}">${fmt.currency(monthData.pnl,0)}</div><div class="cell-trades">${monthData.trades} trades</div>`:'<div class="cell-empty">No trades</div>'}
+      </div>`);
+  }
+  return cells;
+}
+
+function getDayData(dateKey) {
+  const dayTrades = trades.filter(t => t.date === dateKey);
+  const enriched = dayTrades.map(enrich);
+  const pnl = enriched.reduce((sum, t) => sum + (t.pnl || 0), 0);
+  return { pnl: dayTrades.length > 0 ? pnl : null, trades: dayTrades.length };
+}
+
+function getMonthData(year, month) {
+  const monthTrades = trades.filter(t => {
+    const d = new Date(t.date);
+    return d.getFullYear() === year && d.getMonth() === month;
+  });
+  const enriched = monthTrades.map(enrich);
+  const pnl = enriched.reduce((sum, t) => sum + (t.pnl || 0), 0);
+  return { pnl: monthTrades.length > 0 ? pnl : null, trades: monthTrades.length };
+}
+
+function getCellClass(pnl) {
+  if (pnl === null) return 'neutral';
+  return pnl >= 0 ? 'profit' : 'loss';
+}
+
+function formatDateKey(date) {
+  return date.toISOString().split('T')[0];
+}
+
+function getWeekStart(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  return new Date(d.setDate(diff));
+}
+
+function isSameDay(d1, d2) {
+  return d1.getFullYear() === d2.getFullYear() && d1.getMonth() === d2.getMonth() && d1.getDate() === d2.getDate();
+}
+
+function renderCalendarSummary() {
+  const summary = document.getElementById('calendarSummary');
+  if (!summary) return;
+  
+  let stats = { totalPnl:0, totalTrades:0, wins:0, losses:0, winRate:0 };
+  
+  switch(calendarPeriod) {
+    case 'day':
+      const dayData = getDayData(formatDateKey(currentDate));
+      stats.totalPnl = dayData.pnl || 0;
+      stats.totalTrades = dayData.trades;
+      break;
+    case 'week':
+      const weekStart = getWeekStart(currentDate);
+      for(let i=0;i<7;i++) {
+        const date = new Date(weekStart);
+        date.setDate(date.getDate() + i);
+        const dayData = getDayData(formatDateKey(date));
+        if(dayData.pnl !== null) {
+          stats.totalPnl += dayData.pnl;
+          stats.totalTrades += dayData.trades;
+        }
+      }
+      break;
+    case 'month':
+      const year = currentDate.getFullYear(), month = currentDate.getMonth();
+      const monthData = getMonthData(year, month);
+      stats.totalPnl = monthData.pnl || 0;
+      stats.totalTrades = monthData.trades;
+      break;
+    case 'quarter':
+      const qYear = currentDate.getFullYear();
+      const startMonth = Math.floor(currentDate.getMonth()/3)*3;
+      for(let i=0;i<3;i++) {
+        const mData = getMonthData(qYear, startMonth+i);
+        if(mData.pnl !== null) {
+          stats.totalPnl += mData.pnl;
+          stats.totalTrades += mData.trades;
+        }
+      }
+      break;
+    case 'year':
+      const yYear = currentDate.getFullYear();
+      for(let m=0;m<12;m++) {
+        const mData = getMonthData(yYear, m);
+        if(mData.pnl !== null) {
+          stats.totalPnl += mData.pnl;
+          stats.totalTrades += mData.trades;
+        }
+      }
+      break;
+  }
+  
+  const periodTrades = getPeriodTrades();
+  const wins = periodTrades.filter(t => t.result === 'win').length;
+  const losses = periodTrades.filter(t => t.result === 'loss').length;
+  stats.wins = wins;
+  stats.losses = losses;
+  stats.winRate = (wins+losses) > 0 ? ((wins/(wins+losses))*100).toFixed(1) : 0;
+  
+  summary.innerHTML = `
+    <div class="summary-stat"><div class="summary-label">Total P&L</div><div class="summary-value ${stats.totalPnl>=0?'profit':'loss'}">${fmt.currency(stats.totalPnl,0)}</div></div>
+    <div class="summary-stat"><div class="summary-label">Total Trades</div><div class="summary-value">${stats.totalTrades}</div></div>
+    <div class="summary-stat"><div class="summary-label">Wins</div><div class="summary-value profit">${stats.wins}</div></div>
+    <div class="summary-stat"><div class="summary-label">Losses</div><div class="summary-value loss">${stats.losses}</div></div>
+    <div class="summary-stat"><div class="summary-label">Win Rate</div><div class="summary-value">${stats.winRate}%</div></div>`;
+}
+
+function getPeriodTrades() {
+  const enriched = trades.map(enrich);
+  switch(calendarPeriod) {
+    case 'day': return enriched.filter(t => t.date === formatDateKey(currentDate));
+    case 'week':
+      const weekStart = getWeekStart(currentDate);
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      return enriched.filter(t => { const d = new Date(t.date); return d >= weekStart && d <= weekEnd; });
+    case 'month': return enriched.filter(t => { const d = new Date(t.date); return d.getFullYear() === currentDate.getFullYear() && d.getMonth() === currentDate.getMonth(); });
+    case 'quarter':
+      const startMonth = Math.floor(currentDate.getMonth()/3)*3;
+      return enriched.filter(t => { const d = new Date(t.date); return d.getFullYear() === currentDate.getFullYear() && d.getMonth() >= startMonth && d.getMonth() < startMonth+3; });
+    case 'year': return enriched.filter(t => { const d = new Date(t.date); return d.getFullYear() === currentDate.getFullYear(); });
+    default: return [];
+  }
+}
+
+function showDayDetails(dateKey) {
+  const dayTrades = trades.filter(t => t.date === dateKey);
+  if(dayTrades.length === 0) { toast('No trades on this day', 'error'); return; }
+  switchView('journal', document.querySelector('[data-view="journal"]'));
+  document.getElementById('journalSearch').value = dateKey;
+  renderJournal();
+}
+
+function showMonthDetails(year, month) {
+  switchView('journal', document.querySelector('[data-view="journal"]'));
+  const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const monthLabel = `${monthNames[month]} ${year}`;
+  setTimeout(() => {
+    const select = document.getElementById('filterMonth');
+    if(select) { select.value = monthLabel; renderJournal(); }
+  }, 100);
+}
+
+function initCalendar() {
+  renderCalendar();
+}
