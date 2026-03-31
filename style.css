@@ -1393,3 +1393,119 @@ body{
 .sun-icon, .moon-icon {
   transition: opacity 0.2s ease;
 }
+/* ═══ TRADE EXECUTION QUALITY - RADIO GROUPS ═══ */
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  padding: 10px 12px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text2);
+  user-select: none;
+  transition: color 0.2s ease;
+}
+
+.radio-option:hover {
+  color: var(--text);
+}
+
+.radio-option input[type="radio"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--cyan);
+  cursor: pointer;
+  margin: 0;
+}
+
+.radio-option input[type="radio"]:checked + span {
+  color: var(--cyan);
+  font-weight: 500;
+}
+
+/* Execution Quality Analytics Cards */
+.exec-quality-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.exec-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+  transition: border-color 0.2s;
+}
+
+.exec-card:hover {
+  border-color: var(--cyan);
+}
+
+.exec-card-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.exec-chart-wrap {
+  position: relative;
+  height: 180px;
+}
+
+/* Execution Quality Legend */
+.exec-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.exec-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  color: var(--text3);
+}
+
+.exec-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+
+/* Responsive for execution quality */
+@media (max-width: 1200px) {
+  .exec-quality-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .exec-quality-grid {
+    grid-template-columns: 1fr;
+  }
+  .radio-group {
+    padding: 8px 10px;
+  }
+}

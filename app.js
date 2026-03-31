@@ -2,25 +2,25 @@
 
 /* ═══ SEED DATA ═══ */
 const SEED_TRADES = [
-  { date:'2025-09-01', symbol:'Nifty',     entryPrice:210, stopLoss:172, exitPrice:205,  target1:248, target2:286, target3:324, target4:362, tradeType:'Buy Trade',  capital:35000, reason:'Setup Trade',   objective:'Loss but No SL Hit' },
-  { date:'2025-09-03', symbol:'Nifty',     entryPrice:188, stopLoss:172, exitPrice:null, target1:204, target2:220, target3:236, target4:252, tradeType:'Buy Trade',  capital:55000, reason:'',              objective:'Missed Case' },
-  { date:'2025-09-10', symbol:'BankNifty', entryPrice:450, stopLoss:420, exitPrice:510,  target1:480, target2:510, target3:540, target4:570, tradeType:'Buy Trade',  capital:40000, reason:'Breakout Setup', objective:'Clean breakout above resistance' },
-  { date:'2025-09-15', symbol:'BankNifty', entryPrice:500, stopLoss:520, exitPrice:480,  target1:460, target2:440, target3:420, target4:400, tradeType:'Sell Trade', capital:30000, reason:'Resistance Test', objective:'Short from supply zone' },
-  { date:'2025-10-02', symbol:'Nifty',     entryPrice:300, stopLoss:275, exitPrice:340,  target1:325, target2:350, target3:375, target4:400, tradeType:'Buy Trade',  capital:50000, reason:'Support Bounce', objective:'Strong support level, bought dip' },
-  { date:'2025-10-10', symbol:'Reliance',  entryPrice:2800,stopLoss:2750,exitPrice:2900, target1:2850,target2:2900,target3:2950,target4:3000,tradeType:'Buy Trade',  capital:60000, reason:'Momentum',      objective:'Strong trend continuation' },
-  { date:'2025-10-20', symbol:'Reliance',  entryPrice:2920,stopLoss:2960,exitPrice:2870, target1:2870,target2:2820,target3:2770,target4:2720,tradeType:'Sell Trade', capital:45000, reason:'Distribution',   objective:'Topping pattern near resistance' },
-  { date:'2025-11-05', symbol:'Nifty',     entryPrice:350, stopLoss:325, exitPrice:400,  target1:375, target2:400, target3:425, target4:450, tradeType:'Buy Trade',  capital:55000, reason:'Trend Pullback', objective:'Bought pullback in uptrend' },
-  { date:'2025-11-15', symbol:'Nifty',     entryPrice:390, stopLoss:410, exitPrice:355,  target1:360, target2:330, target3:300, target4:270, tradeType:'Sell Trade', capital:40000, reason:'Failed Breakout','objective':'Short after failed breakout attempt' },
-  { date:'2025-12-01', symbol:'BankNifty', entryPrice:480, stopLoss:455, exitPrice:530,  target1:505, target2:530, target3:555, target4:580, tradeType:'Buy Trade',  capital:50000, reason:'Gap Fill',       objective:'Gap up morning, held above EMA' },
-  { date:'2025-12-12', symbol:'TCS',       entryPrice:3500,stopLoss:3450,exitPrice:3600, target1:3550,target2:3600,target3:3650,target4:3700,tradeType:'Buy Trade',  capital:35000, reason:'Earnings Play',  objective:'Pre earnings momentum trade' },
-  { date:'2025-12-20', symbol:'TCS',       entryPrice:3580,stopLoss:3620,exitPrice:3510, target1:3530,target2:3480,target3:3430,target4:3380,tradeType:'Sell Trade', capital:28000, reason:'Post Earnings',  objective:'Sell the news after earnings pop' },
-  { date:'2026-01-08', symbol:'Nifty',     entryPrice:400, stopLoss:375, exitPrice:450,  target1:425, target2:450, target3:475, target4:500, tradeType:'Buy Trade',  capital:60000, reason:'New Year Rally', objective:'Strong opening of year, rode momentum' },
-  { date:'2026-01-22', symbol:'BankNifty', entryPrice:510, stopLoss:490, exitPrice:480,  target1:530, target2:550, target3:570, target4:590, tradeType:'Buy Trade',  capital:45000, reason:'Level Test',     objective:'Expected bounce, got stopped out' },
-  { date:'2026-02-05', symbol:'Nifty',     entryPrice:420, stopLoss:400, exitPrice:480,  target1:440, target2:460, target3:480, target4:500, tradeType:'Buy Trade',  capital:50000, reason:'Budget Play',    objective:'Pre budget accumulation, hit T3' },
-  { date:'2026-02-18', symbol:'Reliance',  entryPrice:3050,stopLoss:3020,exitPrice:3100, target1:3080,target2:3110,target3:3140,target4:3170,tradeType:'Buy Trade',  capital:40000, reason:'Sector Rotation',objective:'Energy sector buying, clean setup' },
-  { date:'2026-03-05', symbol:'Nifty',     entryPrice:460, stopLoss:440, exitPrice:445,  target1:480, target2:500, target3:520, target4:540, tradeType:'Buy Trade',  capital:55000, reason:'Breakout Attempt',objective:'Failed breakout, stopped out near SL' },
-  { date:'2026-03-15', symbol:'BankNifty', entryPrice:540, stopLoss:515, exitPrice:590,  target1:565, target2:590, target3:615, target4:640, tradeType:'Buy Trade',  capital:60000, reason:'Momentum Trade', objective:'Strong momentum, ran to T2' },
-  { date:'2026-03-25', symbol:'Nifty',     entryPrice:100, stopLoss:80,  exitPrice:80,   target1:120, target2:140, target3:160, target4:180, tradeType:'Buy Trade',  capital:10000, reason:'',               objective:'' },
+  { date:'2025-09-01', symbol:'Nifty',     entryPrice:210, stopLoss:172, exitPrice:205,  target1:248, target2:286, target3:324, target4:362, tradeType:'Buy Trade',  capital:35000, reason:'Setup Trade',   objective:'Loss but No SL Hit', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2025-09-03', symbol:'Nifty',     entryPrice:188, stopLoss:172, exitPrice:null, target1:204, target2:220, target3:236, target4:252, tradeType:'Buy Trade',  capital:55000, reason:'',              objective:'Missed Case', entryDiscipline:'late', slPlacement:'system', exitQuality:'plan' },
+  { date:'2025-09-10', symbol:'BankNifty', entryPrice:450, stopLoss:420, exitPrice:510,  target1:480, target2:510, target3:540, target4:570, tradeType:'Buy Trade',  capital:40000, reason:'Breakout Setup', objective:'Clean breakout above resistance', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2025-09-15', symbol:'BankNifty', entryPrice:500, stopLoss:520, exitPrice:480,  target1:460, target2:440, target3:420, target4:400, tradeType:'Sell Trade', capital:30000, reason:'Resistance Test', objective:'Short from supply zone', entryDiscipline:'early', slPlacement:'emotional', exitQuality:'panic' },
+  { date:'2025-10-02', symbol:'Nifty',     entryPrice:300, stopLoss:275, exitPrice:340,  target1:325, target2:350, target3:375, target4:400, tradeType:'Buy Trade',  capital:50000, reason:'Support Bounce', objective:'Strong support level, bought dip', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'greed' },
+  { date:'2025-10-10', symbol:'Reliance',  entryPrice:2800,stopLoss:2750,exitPrice:2900, target1:2850,target2:2900,target3:2950,target4:3000,tradeType:'Buy Trade',  capital:60000, reason:'Momentum',      objective:'Strong trend continuation', entryDiscipline:'late', slPlacement:'system', exitQuality:'plan' },
+  { date:'2025-10-20', symbol:'Reliance',  entryPrice:2920,stopLoss:2960,exitPrice:2870, target1:2870,target2:2820,target3:2770,target4:2720,tradeType:'Sell Trade', capital:45000, reason:'Distribution',   objective:'Topping pattern near resistance', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2025-11-05', symbol:'Nifty',     entryPrice:350, stopLoss:325, exitPrice:400,  target1:375, target2:400, target3:425, target4:450, tradeType:'Buy Trade',  capital:55000, reason:'Trend Pullback', objective:'Bought pullback in uptrend', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2025-11-15', symbol:'Nifty',     entryPrice:390, stopLoss:410, exitPrice:355,  target1:360, target2:330, target3:300, target4:270, tradeType:'Sell Trade', capital:40000, reason:'Failed Breakout','objective':'Short after failed breakout attempt', entryDiscipline:'late', slPlacement:'emotional', exitQuality:'panic' },
+  { date:'2025-12-01', symbol:'BankNifty', entryPrice:480, stopLoss:455, exitPrice:530,  target1:505, target2:530, target3:555, target4:580, tradeType:'Buy Trade',  capital:50000, reason:'Gap Fill',       objective:'Gap up morning, held above EMA', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2025-12-12', symbol:'TCS',       entryPrice:3500,stopLoss:3450,exitPrice:3600, target1:3550,target2:3600,target3:3650,target4:3700,tradeType:'Buy Trade',  capital:35000, reason:'Earnings Play',  objective:'Pre earnings momentum trade', entryDiscipline:'early', slPlacement:'system', exitQuality:'greed' },
+  { date:'2025-12-20', symbol:'TCS',       entryPrice:3580,stopLoss:3620,exitPrice:3510, target1:3530,target2:3480,target3:3430,target4:3380,tradeType:'Sell Trade', capital:28000, reason:'Post Earnings',  objective:'Sell the news after earnings pop', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2026-01-08', symbol:'Nifty',     entryPrice:400, stopLoss:375, exitPrice:450,  target1:425, target2:450, target3:475, target4:500, tradeType:'Buy Trade',  capital:60000, reason:'New Year Rally', objective:'Strong opening of year, rode momentum', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2026-01-22', symbol:'BankNifty', entryPrice:510, stopLoss:490, exitPrice:480,  target1:530, target2:550, target3:570, target4:590, tradeType:'Buy Trade',  capital:45000, reason:'Level Test',     objective:'Expected bounce, got stopped out', entryDiscipline:'late', slPlacement:'system', exitQuality:'panic' },
+  { date:'2026-02-05', symbol:'Nifty',     entryPrice:420, stopLoss:400, exitPrice:480,  target1:440, target2:460, target3:480, target4:500, tradeType:'Buy Trade',  capital:50000, reason:'Budget Play',    objective:'Pre budget accumulation, hit T3', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2026-02-18', symbol:'Reliance',  entryPrice:3050,stopLoss:3020,exitPrice:3100, target1:3080,target2:3110,target3:3140,target4:3170,tradeType:'Buy Trade',  capital:40000, reason:'Sector Rotation',objective:'Energy sector buying, clean setup', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'greed' },
+  { date:'2026-03-05', symbol:'Nifty',     entryPrice:460, stopLoss:440, exitPrice:445,  target1:480, target2:500, target3:520, target4:540, tradeType:'Buy Trade',  capital:55000, reason:'Breakout Attempt',objective:'Failed breakout, stopped out near SL', entryDiscipline:'early', slPlacement:'emotional', exitQuality:'panic' },
+  { date:'2026-03-15', symbol:'BankNifty', entryPrice:540, stopLoss:515, exitPrice:590,  target1:565, target2:590, target3:615, target4:640, tradeType:'Buy Trade',  capital:60000, reason:'Momentum Trade', objective:'Strong momentum, ran to T2', entryDiscipline:'perfect', slPlacement:'system', exitQuality:'plan' },
+  { date:'2026-03-25', symbol:'Nifty',     entryPrice:100, stopLoss:80,  exitPrice:80,   target1:120, target2:140, target3:160, target4:180, tradeType:'Buy Trade',  capital:10000, reason:'',               objective:'', entryDiscipline:'late', slPlacement:'emotional', exitQuality:'panic' },
 ];
 
 const STORE_KEY = 'tradevault_v2';
@@ -77,7 +77,7 @@ function enrich(t) {
   return {...t, slSize, points, pnl, pct, rr, result};
 }
 
-/* ═══ THEME MANAGEMENT - FIXED ═══ */
+/* ═══ THEME MANAGEMENT ═══ */
 const THEME_KEY = 'tradevault_theme';
 
 function getPreferredTheme() {
@@ -87,11 +87,9 @@ function getPreferredTheme() {
 }
 
 function applyTheme(theme) {
-  // Set data attribute - CSS handles icon visibility now
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_KEY, theme);
   
-  // Re-render charts if views are active (they use theme colors)
   setTimeout(() => {
     if (typeof renderDashboard === 'function' && 
         document.getElementById('view-dashboard')?.classList.contains('active')) {
@@ -110,18 +108,16 @@ function toggleTheme() {
   
   applyTheme(next);
   
-  // Show toast if function exists
   if (typeof toast === 'function') {
     toast(`Switched to ${next} mode`, 'success');
   }
 }
 
-// Initialize theme ONCE after DOM is ready
 document.addEventListener('DOMContentLoaded', function() {
   applyTheme(getPreferredTheme());
 });
 
-/* ═══ TARGET CALCULATION (Excel Style - AUTO) ═══ */
+/* ═══ TARGET CALCULATION ═══ */
 function calcTargets(entry, sl, tradeType) {
   if (!isNum(entry) || !isNum(sl)) {
     return { t1: null, t2: null, t3: null, t4: null };
@@ -167,6 +163,9 @@ function destroyChart(id) { if(CHARTS[id]){CHARTS[id].destroy();delete CHARTS[id
 const CF = {
   text2: '#7B84A3', grid: '#1E2235',
   cyan: '#00D4FF', emerald: '#00C896', rose: '#FF4D6D', amber: '#F59E0B', violet: '#8B5CF6',
+  perfect: '#00C896', early: '#F59E0B', late: '#FF4D6D',
+  system: '#00D4FF', emotional: '#FF4D6D',
+  plan: '#00C896', panic: '#FF4D6D', greed: '#F59E0B',
 };
 
 function baseOpts(xRot=0) {
@@ -340,7 +339,6 @@ function renderJournalPage() {
     return true;
   });
   
-  // ✅ Show/hide delete button based on filters
   const deleteBtn = document.getElementById('deleteFilteredBtn');
   if(deleteBtn) {
     const hasFilters = q || fM || fS || fR;
@@ -422,6 +420,15 @@ function journalRow(t, n) {
 }
 
 /* ═══ FORM ═══ */
+function getRadioValue(name) {
+  const el = document.querySelector(`input[name="${name}"]:checked`);
+  return el ? el.value : null;
+}
+function setRadioValue(name, value) {
+  const el = document.querySelector(`input[name="${name}"][value="${value}"]`);
+  if(el) el.checked = true;
+}
+
 function openEditView(idx) {
   const t = trades[idx]; if(!t) return;
   switchView('add', document.querySelector('[data-view="add"]'));
@@ -432,6 +439,12 @@ function openEditView(idx) {
   setv('fExit',t.exitPrice??''); setv('fT1',t.target1??''); setv('fT2',t.target2??'');
   setv('fT3',t.target3??''); setv('fT4',t.target4??'');
   setv('fReason',t.reason||''); setv('fObjective',t.objective||'');
+  
+  // ✅ Set execution quality radio buttons
+  setRadioValue('fEntryDiscipline', t.entryDiscipline || 'perfect');
+  setRadioValue('fSLPlacement', t.slPlacement || 'system');
+  setRadioValue('fExitQuality', t.exitQuality || 'plan');
+  
   calcPnl();
 }
 
@@ -442,6 +455,11 @@ function clearForm() {
   document.getElementById('editIndex').value = '-1';
   document.getElementById('formTitle').textContent = 'Add New Trade';
   ['calcSLSize','calcPoints','calcPnL','calcPct','calcRR'].forEach(id=>{ const e=document.getElementById(id); if(e){e.textContent='—';e.style.color='';} });
+  
+  // ✅ Reset execution quality radios to defaults
+  setRadioValue('fEntryDiscipline', 'perfect');
+  setRadioValue('fSLPlacement', 'system');
+  setRadioValue('fExitQuality', 'plan');
 }
 
 function saveTrade() {
@@ -455,12 +473,17 @@ function saveTrade() {
   
   const targets = calcTargets(entry, sl, type);
   
+  // ✅ Capture execution quality values
   const trade = {
     date, symbol, tradeType:type,
     capital:isNaN(cap)?null:cap, entryPrice:entry, stopLoss:sl,
     exitPrice:parseFloat(getv('fExit'))||null,
     target1: targets.t1, target2: targets.t2, target3: targets.t3, target4: targets.t4,
     reason:getv('fReason'), objective:getv('fObjective'),
+    // ✅ Execution Quality Fields
+    entryDiscipline: getRadioValue('fEntryDiscipline'),
+    slPlacement: getRadioValue('fSLPlacement'),
+    exitQuality: getRadioValue('fExitQuality'),
   };
   const idx = parseInt(document.getElementById('editIndex').value);
   if(idx>=0) { trades[idx]=trade; toast('Trade updated successfully!','success'); }
@@ -588,15 +611,194 @@ function renderAnalytics() {
     options:baseOpts(),
   });
   
-  // ✅ Initialize Calendar
+  // ✅ EXECUTION QUALITY CHARTS
+  renderExecutionQualityCharts(rich);
+  
   initCalendar();
+}
+
+/* ═══ EXECUTION QUALITY CHARTS ═══ */
+function renderExecutionQualityCharts(rich) {
+  // Entry Discipline Chart
+  destroyChart('entryDisciplineChart');
+  const entryData = { perfect:0, early:0, late:0 };
+  rich.forEach(t => { if(t.entryDiscipline) entryData[t.entryDiscipline]++; });
+  
+  const entryCtx = document.getElementById('entryDisciplineChart');
+  if(entryCtx) {
+    CHARTS.entryDisciplineChart = new Chart(entryCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Perfect', 'Early', 'Late'],
+        datasets: [{
+          data: [entryData.perfect, entryData.early, entryData.late],
+          backgroundColor: [CF.perfect, CF.early, CF.late],
+          borderColor: '#0D0F17',
+          borderWidth: 3,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { color: CF.text2, font: { family: "'DM Mono', monospace", size: 9 }, padding: 10 }},
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} trades` }}
+        }
+      }
+    });
+  }
+  
+  // SL Placement Chart
+  destroyChart('slPlacementChart');
+  const slData = { system:0, emotional:0 };
+  rich.forEach(t => { if(t.slPlacement) slData[t.slPlacement]++; });
+  
+  const slCtx = document.getElementById('slPlacementChart');
+  if(slCtx) {
+    CHARTS.slPlacementChart = new Chart(slCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['As per system', 'Emotional'],
+        datasets: [{
+          data: [slData.system, slData.emotional],
+          backgroundColor: [CF.system, CF.emotional],
+          borderColor: '#0D0F17',
+          borderWidth: 3,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { color: CF.text2, font: { family: "'DM Mono', monospace", size: 9 }, padding: 10 }},
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} trades` }}
+        }
+      }
+    });
+  }
+  
+  // Exit Quality Chart
+  destroyChart('exitQualityChart');
+  const exitData = { plan:0, panic:0, greed:0 };
+  rich.forEach(t => { if(t.exitQuality) exitData[t.exitQuality]++; });
+  
+  const exitCtx = document.getElementById('exitQualityChart');
+  if(exitCtx) {
+    CHARTS.exitQualityChart = new Chart(exitCtx, {
+      type: 'doughnut',
+      data: {
+        labels: ['As per plan', 'Panic exit', 'Greed hold'],
+        datasets: [{
+          data: [exitData.plan, exitData.panic, exitData.greed],
+          backgroundColor: [CF.plan, CF.panic, CF.greed],
+          borderColor: '#0D0F17',
+          borderWidth: 3,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '65%',
+        plugins: {
+          legend: { display: true, position: 'bottom', labels: { color: CF.text2, font: { family: "'DM Mono', monospace", size: 9 }, padding: 10 }},
+          tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw} trades` }}
+        }
+      }
+    });
+  }
+  
+  // ✅ P&L by Execution Quality - Bar Chart
+  destroyChart('pnlByExecutionChart');
+  
+  // Calculate avg P&L by entry discipline
+  const pnlByEntry = { perfect: [], early: [], late: [] };
+  rich.filter(t => t.result !== 'open').forEach(t => {
+    if(t.entryDiscipline && t.pnl !== null) pnlByEntry[t.entryDiscipline].push(t.pnl);
+  });
+  
+  const avgPnlByEntry = {
+    perfect: pnlByEntry.perfect.length ? pnlByEntry.perfect.reduce((a,b)=>a+b,0)/pnlByEntry.perfect.length : 0,
+    early: pnlByEntry.early.length ? pnlByEntry.early.reduce((a,b)=>a+b,0)/pnlByEntry.early.length : 0,
+    late: pnlByEntry.late.length ? pnlByEntry.late.reduce((a,b)=>a+b,0)/pnlByEntry.late.length : 0,
+  };
+  
+  const pnlCtx = document.getElementById('pnlByExecutionChart');
+  if(pnlCtx) {
+    CHARTS.pnlByExecutionChart = new Chart(pnlCtx, {
+      type: 'bar',
+      data: {
+        labels: ['Perfect Entry', 'Early Entry', 'Late Entry'],
+        datasets: [{
+          label: 'Avg P&L (₹)',
+          data: [avgPnlByEntry.perfect, avgPnlByEntry.early, avgPnlByEntry.late],
+          backgroundColor: [
+            avgPnlByEntry.perfect >= 0 ? 'rgba(0,200,150,0.7)' : 'rgba(255,77,109,0.7)',
+            avgPnlByEntry.early >= 0 ? 'rgba(245,158,11,0.7)' : 'rgba(255,77,109,0.7)',
+            avgPnlByEntry.late >= 0 ? 'rgba(0,212,255,0.7)' : 'rgba(255,77,109,0.7)',
+          ],
+          borderRadius: 4,
+        }]
+      },
+      options: {
+        ...baseOpts(),
+        plugins: {
+          ...baseOpts().plugins,
+          tooltip: { callbacks: { label: ctx => ` ${fmt.currency(ctx.raw, 0)}` }}
+        }
+      }
+    });
+  }
+  
+  // ✅ Update Execution Quality Summary Stats
+  renderExecutionQualitySummary(rich);
+}
+
+function renderExecutionQualitySummary(rich) {
+  const summary = document.getElementById('execQualitySummary');
+  if(!summary) return;
+  
+  // Calculate win rates by execution quality
+  const getWinRate = (field, value) => {
+    const filtered = rich.filter(t => t[field] === value && t.result !== 'open');
+    const wins = filtered.filter(t => t.result === 'win').length;
+    return filtered.length > 0 ? ((wins / filtered.length) * 100).toFixed(1) : '—';
+  };
+  
+  const getAvgPnl = (field, value) => {
+    const filtered = rich.filter(t => t[field] === value && t.result !== 'open' && t.pnl !== null);
+    return filtered.length > 0 ? fmt.currency(filtered.reduce((a,t)=>a+t.pnl,0)/filtered.length, 0) : '—';
+  };
+  
+  summary.innerHTML = `
+    <div class="exec-summary-grid">
+      <div class="exec-summary-item">
+        <div class="exec-summary-label">Perfect Entry Win Rate</div>
+        <div class="exec-summary-value profit">${getWinRate('entryDiscipline', 'perfect')}%</div>
+      </div>
+      <div class="exec-summary-item">
+        <div class="exec-summary-label">System SL Win Rate</div>
+        <div class="exec-summary-value profit">${getWinRate('slPlacement', 'system')}%</div>
+      </div>
+      <div class="exec-summary-item">
+        <div class="exec-summary-label">Planned Exit Win Rate</div>
+        <div class="exec-summary-value profit">${getWinRate('exitQuality', 'plan')}%</div>
+      </div>
+      <div class="exec-summary-item">
+        <div class="exec-summary-label">Perfect Entry Avg P&L</div>
+        <div class="exec-summary-value">${getAvgPnl('entryDiscipline', 'perfect')}</div>
+      </div>
+      <div class="exec-summary-item">
+        <div class="exec-summary-label">System SL Avg P&L</div>
+        <div class="exec-summary-value">${getAvgPnl('slPlacement', 'system')}</div>
+      </div>
+      <div class="exec-summary-item">
+        <div class="exec-summary-label">Planned Exit Avg P&L</div>
+        <div class="exec-summary-value">${getAvgPnl('exitQuality', 'plan')}</div>
+      </div>
+    </div>`;
 }
 
 /* ═══ EXPORT ═══ */
 function exportCSV() {
   const headers = ['Date','Symbol','Trade Type','Entry Price','Stop Loss','SL Size','Exit Price',
     'Points','Target 1','Target 2','Target 3','Target 4','Capital (INR)','P&L (INR)','Return %','R:R Ratio',
-    'Reason','Notes','Result'];
+    'Reason','Notes','Result','Entry Discipline','SL Placement','Exit Quality'];
   const rows = trades.map(t=>{
     const r=enrich(t);
     return [r.date,r.symbol,r.tradeType,r.entryPrice,r.stopLoss,
@@ -606,6 +808,7 @@ function exportCSV() {
       r.capital??'',r.pnl!==null?r.pnl.toFixed(2):'',
       r.pct!==null?(r.pct*100).toFixed(4):'',r.rr!==null?r.rr.toFixed(2):'',
       r.reason??'',r.objective??'',r.result,
+      r.entryDiscipline??'',r.slPlacement??'',r.exitQuality??'',
     ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
   });
   const csv = [headers.join(','),...rows].join('\n');
@@ -652,6 +855,9 @@ function openModal(idx) {
     ['Return %',`<span class="${pnlCls(t.pct)}">${fmt.pct(t.pct)}</span>`],
     ['Capital',fmt.currency(t.capital,0)],['R:R Ratio',fmt.num(t.rr,2)],['Target 1',fmt.num(t.target1,2)],
     ['Target 2',fmt.num(t.target2,2)],['Target 3',fmt.num(t.target3,2)],
+    ['Entry Discipline', t.entryDiscipline ? t.entryDiscipline.charAt(0).toUpperCase() + t.entryDiscipline.slice(1) : '—'],
+    ['SL Placement', t.slPlacement ? t.slPlacement === 'system' ? 'As per system' : t.slPlacement.charAt(0).toUpperCase() + t.slPlacement.slice(1) : '—'],
+    ['Exit Quality', t.exitQuality ? t.exitQuality === 'plan' ? 'As per plan' : t.exitQuality.charAt(0).toUpperCase() + t.exitQuality.slice(1) : '—'],
   ];
   document.getElementById('modalBody').innerHTML = `<div class="modal-grid">${fields.map(([l,v])=>`<div><div class="modal-field-label">${l}</div><div class="modal-field-val">${v}</div></div>`).join('')}</div>`;
   document.getElementById('modalDeleteBtn').onclick = ()=>{ closeModal(); deleteTrade(idx); };
@@ -694,10 +900,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   populateFilters();
 });
 
-/* ════════════════════════════════════════════════════════════════ */
-/* ═══ CALENDAR FUNCTIONALITY - MERGED BELOW ═══ */
-/* ════════════════════════════════════════════════════════════════ */
-
+/* ═══ CALENDAR FUNCTIONALITY ═══ */
 let calendarPeriod = 'month';
 let currentDate = new Date();
 
@@ -995,10 +1198,8 @@ function deleteFilteredTrades() {
   const fS = document.getElementById('filterSymbol')?.value || '';
   const fR = document.getElementById('filterResult')?.value || '';
   
-  // Get all trades with their indices
   const rich = trades.map((t, i) => ({...enrich(t), _i: i}));
   
-  // Filter trades based on current filters
   const filtered = rich.filter(t => {
     if(q && !((t.symbol||'').toLowerCase().includes(q) || (t.date||'').includes(q) || (t.reason||'').toLowerCase().includes(q))) return false;
     if(fM && fmt.monthKey(t.date) !== fM) return false;
@@ -1015,19 +1216,15 @@ function deleteFilteredTrades() {
   const confirmMsg = `Delete ${filtered.length} trade${filtered.length !== 1 ? 's' : ''}? This cannot be undone.`;
   if(!confirm(confirmMsg)) return;
   
-  // Get indices to delete (in reverse order to avoid index shifting)
   const indicesToDelete = filtered.map(t => t._i).sort((a, b) => b - a);
   
-  // Delete trades
   indicesToDelete.forEach(idx => {
     trades.splice(idx, 1);
   });
   
-  // Save and refresh
   saveTrades(trades);
   toast(`${filtered.length} trade${filtered.length !== 1 ? 's' : ''} deleted successfully`, 'success');
   
-  // Clear filters and re-render
   document.getElementById('journalSearch').value = '';
   document.getElementById('filterMonth').value = '';
   document.getElementById('filterSymbol').value = '';
@@ -1036,7 +1233,6 @@ function deleteFilteredTrades() {
   renderJournal();
   renderDashboard();
   
-  // Hide delete button
   const deleteBtn = document.getElementById('deleteFilteredBtn');
   if(deleteBtn) deleteBtn.style.display = 'none';
 }

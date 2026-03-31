@@ -179,6 +179,7 @@
   </section>
 
   <!-- ── ADD TRADE ── -->
+    <!-- ── ADD TRADE ── -->
   <section class="view" id="view-add">
     <div class="view-header"><div><div class="view-title" id="formTitle">Add New Trade</div><div class="view-sub">All calculated fields update automatically</div></div></div>
     <input type="hidden" id="editIndex" value="-1"/>
@@ -222,10 +223,47 @@
           <div class="form-group fg-span3"><div class="form-label">System Notes / Objective</div><textarea id="fObjective" class="form-input form-textarea" placeholder="Trading plan objective, observations, what you learned…"></textarea></div>
         </div>
       </div>
+      
+      <!-- ✅ NEW: TRADE EXECUTION QUALITY SECTION -->
+      <div class="form-card">
+        <div class="form-card-title">Trade Execution Quality</div>
+        <div class="form-grid">
+          <!-- Entry Discipline -->
+          <div class="form-group">
+            <div class="form-label">Entry Discipline</div>
+            <div class="radio-group">
+              <label class="radio-option"><input type="radio" name="fEntryDiscipline" value="perfect" checked/> <span>Perfect</span></label>
+              <label class="radio-option"><input type="radio" name="fEntryDiscipline" value="early"/> <span>Early</span></label>
+              <label class="radio-option"><input type="radio" name="fEntryDiscipline" value="late"/> <span>Late</span></label>
+            </div>
+          </div>
+          
+          <!-- SL Placement -->
+          <div class="form-group">
+            <div class="form-label">SL Placement</div>
+            <div class="radio-group">
+              <label class="radio-option"><input type="radio" name="fSLPlacement" value="system" checked/> <span>As per system</span></label>
+              <label class="radio-option"><input type="radio" name="fSLPlacement" value="emotional"/> <span>Emotional</span></label>
+            </div>
+          </div>
+          
+          <!-- Exit Quality -->
+          <div class="form-group">
+            <div class="form-label">Exit Quality</div>
+            <div class="radio-group">
+              <label class="radio-option"><input type="radio" name="fExitQuality" value="plan" checked/> <span>As per plan</span></label>
+              <label class="radio-option"><input type="radio" name="fExitQuality" value="panic"/> <span>Panic exit</span></label>
+              <label class="radio-option"><input type="radio" name="fExitQuality" value="greed"/> <span>Greed hold</span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+      
     </div>
   </section>
 
   <!-- ── ANALYTICS ── ✅ UPDATED WITH CALENDAR -->
+    <!-- ── ANALYTICS ── ✅ UPDATED WITH EXECUTION QUALITY -->
   <section class="view" id="view-report">
     <div class="view-header">
       <div><div class="view-title">Analytics Report</div><div class="view-sub">Deep performance metrics</div></div>
@@ -236,7 +274,50 @@
     </div>
     <div class="stats-grid" id="statsGrid"></div>
     
-    <!-- ✅ CALENDAR SECTION REPLACES HEATMAP -->
+    <!-- ✅ EXECUTION QUALITY CHARTS SECTION -->
+    <div class="view-header" style="margin-top:24px">
+      <div><div class="view-title" style="font-size:18px">Trade Execution Quality</div><div class="view-sub">Analyze your discipline & decision-making</div></div>
+    </div>
+    
+    <div class="exec-quality-grid">
+      <div class="exec-card">
+        <div class="exec-card-title">Entry Discipline</div>
+        <div class="exec-chart-wrap"><canvas id="entryDisciplineChart"></canvas></div>
+        <div class="exec-legend">
+          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--emerald)"></div><span>Perfect</span></div>
+          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--amber)"></div><span>Early</span></div>
+          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Late</span></div>
+        </div>
+      </div>
+      <div class="exec-card">
+        <div class="exec-card-title">SL Placement</div>
+        <div class="exec-chart-wrap"><canvas id="slPlacementChart"></canvas></div>
+        <div class="exec-legend">
+          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--cyan)"></div><span>As per system</span></div>
+          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Emotional</span></div>
+        </div>
+      </div>
+      <div class="exec-card">
+        <div class="exec-card-title">Exit Quality</div>
+        <div class="exec-chart-wrap"><canvas id="exitQualityChart"></canvas></div>
+        <div class="exec-legend">
+          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--emerald)"></div><span>As per plan</span></div>
+          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Panic exit</span></div>
+          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--amber)"></div><span>Greed hold</span></div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- P&L by Execution Quality -->
+    <div class="chart-box" style="margin-bottom:20px">
+      <div class="chart-head"><div class="section-label">Avg P&L by Entry Discipline</div><div class="section-tag">Performance Impact</div></div>
+      <div class="chart-wrap" style="height:200px"><canvas id="pnlByExecutionChart"></canvas></div>
+    </div>
+    
+    <!-- Execution Quality Summary Stats -->
+    <div class="stats-grid" id="execQualitySummary"></div>
+    
+    <!-- CALENDAR SECTION -->
     <div class="calendar-section">
       <div class="calendar-header">
         <div class="calendar-controls">
