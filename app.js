@@ -1,12 +1,222 @@
 'use strict';
 
-/* ═══ NO SEED DATA - USER DATA ONLY ═══ */
-// SEED_TRADES completely removed - app starts empty
+/* ═══ FIREBASE CONFIG - YOUR VALUES ═══ */
+const firebaseConfig = {
+  apiKey: "AIzaSyBBixvE5SQjOePUrvNLTsBEcQAChU9dvLQ",
+  authDomain: "tradevault-pro-7421d.firebaseapp.com",
+  projectId: "tradevault-pro-7421d",
+  storageBucket: "tradevault-pro-7421d.firebasestorage.app",
+  messagingSenderId: "168832794255",
+  appId: "1:168832794255:web:c288d9c78809941dfe7afa",
+  measurementId: "G-E1BNCY4F9J"
+};
+
+/* ═══ GLOBAL VARIABLES ═══ */
+let db, auth, currentUserId;
+let trades = [];
+let syncEnabled = false;
 const STORE_KEY = 'tradevault_v2';
-
-/* ═══ CAPITAL DEPOSITED MANAGEMENT ═══ */
 const DEPOSIT_KEY = 'tradevault_deposit';
+const TRADES_COLLECTION = 'trades';
+const SETTINGS_COLLECTION = 'user_settings';
 
+/* ═══ INITIALIZE FIREBASE ═══ */
+function initFirebase() {
+  if (typeof firebase === 'undefined') {
+    console.error('❌ Firebase SDK not loaded!');
+    return false;
+  }
+  
+  try {
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.firestore();
+    auth = firebase.auth();
+    
+    // Enable offline persistence
+    db.enablePersistence().catch(err => {
+      if (err.code === 'failed-precondition') {
+        console.log('⚠️ Multiple tabs open - persistence disabled');
+      } else if (err.code === 'unimplemented') {
+        console.log('⚠️ Browser doesn\'t support persistence');
+      }
+    });
+    
+    // Anonymous auth for seamless sync
+    auth.signInAnonymously()
+      .then(() => {
+        console.log('✅ Anonymous auth successful');
+      })
+      .catch(err => {
+        console.error('❌ Auth error:', err);
+        toast('Sync unavailable - using local storage', 'error');
+      });
+    
+    // Listen for auth state changes
+    auth.onAuthStateChanged(user => {
+      if (user) {
+        currentUserId = user.uid;
+        console.log('👤 User ID:', currentUserId);
+        setupRealtimeSync();
+        loadUserSettings();
+        syncEnabled = true;
+        updateSyncStatus();
+      }
+    });
+    
+    return true;
+  } catch (e) {
+    console.error('Firebase init error:', e);
+    return false;
+  }
+}
+
+/* ═══ SYNC STATUS INDICATOR ═══ */
+function updateSyncStatus() {
+  const indicator = document.getElementById('syncStatus');
+  if (!indicator) return;
+  
+  if (!syncEnabled) {
+    indicator.innerHTML = '<span style="color:var(--amber)">● Local</span>';
+    indicator.title = 'Data saved locally only';
+  } else if (navigator.onLine) {
+    indicator.innerHTML = '<span style="color:var(--emerald)">● Synced</span>';
+    indicator.title = 'Real-time sync active across devices';
+  } else {
+    indicator.innerHTML = '<span style="color:var(--rose)">● Offline</span>';
+    indicator.title = 'Waiting for connection...';
+  }
+}
+
+/* ═══ REAL-TIME SYNC LISTENER ═══ */
+function setupRealtimeSync() {
+  if (!currentUserId) return;
+  
+  db.collection(TRADES_COLLECTION)
+    .where('userId', '==', currentUserId)
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(snapshot => {
+      trades = [];
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        trades.push({ firebaseId: doc.id, ...data });
+      });
+      
+      console.log(`🔄 Synced ${trades.length} trades from cloud`);
+      
+      // Backup to localStorage for offline safety
+      localStorage.setItem(STORE_KEY, JSON.stringify(trades));
+      
+      // Re-render if view is active
+      renderAll();
+      updateSidebarCapital();
+    }, error => {
+      console.error('🔥 Sync error:', error);
+      if (error.code === 'permission-denied') {
+        toast('❌ Check Firestore security rules', 'error');
+      } else {
+        toast('⚠️ Sync paused - using local data', 'error');
+      }
+      updateSyncStatus();
+    });
+}
+
+/* ═══ CLOUD OPERATIONS ═══ */
+async function syncTradeToCloud(trade) {
+  if (!syncEnabled || !currentUserId) {
+    // Fallback to localStorage only
+    saveTrades(trades);
+    return;
+  }
+  
+  try {
+    const tradeData = {
+      ...trade,
+      userId: currentUserId,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    };
+    
+    if (trade.firebaseId) {
+      // Update existing trade
+      await db.collection(TRADES_COLLECTION)
+        .doc(trade.firebaseId)
+        .update(tradeData);
+      console.log('✅ Trade updated in cloud');
+    } else {
+      // Create new trade
+      tradeData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
+      const docRef = await db.collection(TRADES_COLLECTION).add(tradeData);
+      trade.firebaseId = docRef.id;
+      console.log('✅ Trade added to cloud');
+    }
+  } catch (error) {
+    console.error('❌ Cloud sync failed:', error);
+    // Fallback: save to localStorage
+    saveTrades(trades);
+    toast('⚠️ Saved locally (will sync when online)', 'error');
+  }
+}
+
+async function deleteTradeFromCloud(firebaseId) {
+  if (!firebaseId || !syncEnabled) return;
+  
+  try {
+    await db.collection(TRADES_COLLECTION).doc(firebaseId).delete();
+    console.log('✅ Trade deleted from cloud');
+  } catch (error) {
+    console.error('❌ Cloud delete failed:', error);
+  }
+}
+
+async function saveUserSettings(settings) {
+  if (!syncEnabled || !currentUserId) return;
+  
+  try {
+    await db.collection(SETTINGS_COLLECTION).doc(currentUserId).set({
+      ...settings,
+      updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+    }, { merge: true });
+  } catch (e) {
+    console.log('Settings sync skipped');
+  }
+}
+
+function loadUserSettings() {
+  if (!syncEnabled || !currentUserId) return;
+  
+  db.collection(SETTINGS_COLLECTION).doc(currentUserId).get().then(doc => {
+    if (doc.exists) {
+      const settings = doc.data();
+      if (settings.theme) applyTheme(settings.theme);
+      if (settings.depositedCapital !== undefined) {
+        setDepositedCapital(settings.depositedCapital);
+      }
+    }
+  });
+}
+
+/* ═══ LOCAL STORAGE FUNCTIONS (FALLBACK) ═══ */
+function loadTrades() {
+  if (syncEnabled && currentUserId) {
+    return []; // Realtime listener will populate
+  }
+  
+  try { 
+    const r = localStorage.getItem(STORE_KEY); 
+    if (r) {
+      const parsed = JSON.parse(r);
+      return Array.isArray(parsed) ? parsed : [];
+    }
+  } catch(e) {
+    console.warn('Error loading trades:', e);
+  }
+  return [];
+}
+
+function saveTrades(data) { 
+  localStorage.setItem(STORE_KEY, JSON.stringify(data)); 
+}
+
+/* ═══ CAPITAL MANAGEMENT ═══ */
 function getDepositedCapital() {
   const val = localStorage.getItem(DEPOSIT_KEY);
   return val ? parseFloat(val) : 0;
@@ -14,11 +224,16 @@ function getDepositedCapital() {
 
 function setDepositedCapital(amount) {
   localStorage.setItem(DEPOSIT_KEY, amount.toString());
+  
+  // Sync to cloud settings
+  if (syncEnabled && currentUserId) {
+    saveUserSettings({ depositedCapital: amount });
+  }
+  
   updateSidebarCapital();
   renderDashboard();
 }
 
-// ✅ Get Current Capital (Deposit + P&L)
 function getCurrentCapital() {
   const deposited = getDepositedCapital();
   const rich = trades.map(enrich);
@@ -35,26 +250,6 @@ function updateSidebarCapital() {
   set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
   set('kpiCap', fmt.currency(currentCapital, 0));
 }
-
-// ✅ LOAD TRADES - ONLY FROM LOCALSTORAGE, NO SEED DATA
-function loadTrades() {
-  try { 
-    const r = localStorage.getItem(STORE_KEY); 
-    if (r) {
-      const parsed = JSON.parse(r);
-      return Array.isArray(parsed) ? parsed : [];
-    }
-  } catch(e) {
-    console.warn('Error loading trades:', e);
-  }
-  return []; // ✅ Empty array - NO demo data
-}
-
-function saveTrades(d) { 
-  localStorage.setItem(STORE_KEY, JSON.stringify(d)); 
-}
-
-let trades = loadTrades();
 
 /* ═══ FORMULAS ═══ */
 function isNum(v) { return v !== null && v !== undefined && v !== '' && !isNaN(Number(v)); }
@@ -119,6 +314,12 @@ function getPreferredTheme() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_KEY, theme);
+  
+  // Sync theme preference
+  if (syncEnabled && currentUserId) {
+    saveUserSettings({ theme });
+  }
+  
   setTimeout(() => {
     if (typeof renderDashboard === 'function' &&
     document.getElementById('view-dashboard')?.classList.contains('active')) {
@@ -140,10 +341,6 @@ function toggleTheme() {
   }
 }
 
-document.addEventListener('DOMContentLoaded', function() {
-  applyTheme(getPreferredTheme());
-});
-
 /* ═══ TARGET CALCULATION ═══ */
 function calcTargets(entry, sl, tradeType) {
   if (!isNum(entry) || !isNum(sl)) {
@@ -160,7 +357,7 @@ function calcTargets(entry, sl, tradeType) {
   };
 }
 
-/* ═══ EDIT DEPOSITED CAPITAL ═══ */
+/* ═══ CAPITAL FUNCTIONS ═══ */
 function editDepositedCapital() {
   const current = getDepositedCapital();
   const newAmount = prompt('Enter your total initial deposited capital (₹):\n(Display will update with P&L)', current);
@@ -175,7 +372,6 @@ function editDepositedCapital() {
   validateFormCapital();
 }
 
-/* ═══ CAPITAL VALIDATION ═══ */
 function validateFormCapital() {
   const currentCapital = getCurrentCapital();
   const invested = parseFloat(getv('fCapital'));
@@ -332,7 +528,6 @@ function baseOpts(xRot=0) {
 
 /* ═══ DASHBOARD ═══ */
 function renderDashboard() {
-  // ✅ Handle empty state first
   if (trades.length === 0) {
     renderEmptyDashboard();
     return;
@@ -605,7 +800,7 @@ function journalRow(t, n) {
   </tr>`;
 }
 
-/* ═══ FORM ═══ */
+/* ═══ FORM FUNCTIONS ═══ */
 function getRadioValue(name) {
   const el = document.querySelector(`input[name="${name}"]:checked`);
   return el ? el.value : null;
@@ -644,6 +839,7 @@ function clearForm() {
   setRadioValue('fExitQuality', 'plan');
 }
 
+/* ═══ SAVE TRADE - MODIFIED FOR FIREBASE ═══ */
 function saveTrade() {
   const date=getv('fDate'), symbol=getv('fSymbol').trim(), type=getv('fType');
   const cap=parseFloat(getv('fCapital')), entry=parseFloat(getv('fEntry')), sl=parseFloat(getv('fSL'));
@@ -684,17 +880,41 @@ Continue anyway?`)) {
   };
   
   const idx = parseInt(document.getElementById('editIndex').value);
-  if(idx>=0) { trades[idx]=trade; toast('Trade updated successfully!','success'); }
-  else       { trades.push(trade); toast('Trade added successfully!','success'); }
+  if(idx>=0) { 
+    trades[idx] = {...trade, firebaseId: trades[idx].firebaseId}; 
+    toast('Trade updated & synced! ✓', 'success'); 
+  } else { 
+    trades.push(trade); 
+    toast('Trade added & synced! ✓', 'success'); 
+  }
   
-  saveTrades(trades); clearForm(); renderAll();
+  // 🔄 SYNC TO FIREBASE
+  syncTradeToCloud(trade);
+  
+  clearForm(); 
+  // renderAll() will be called by realtime listener
   switchView('journal',document.querySelector('[data-view="journal"]'));
 }
 
+/* ═══ DELETE TRADE - MODIFIED FOR FIREBASE ═══ */
 function deleteTrade(idx) {
-  if(!confirm('Delete this trade? This cannot be undone.')) return;
-  trades.splice(idx,1); saveTrades(trades);
-  toast('Trade deleted.','success'); renderAll();
+  if(!confirm('Delete this trade permanently?')) return;
+  
+  const trade = trades[idx];
+  const firebaseId = trade.firebaseId;
+  
+  trades.splice(idx, 1);
+  
+  // 🔄 DELETE FROM FIREBASE
+  if (firebaseId) {
+    deleteTradeFromCloud(firebaseId);
+  }
+  
+  // Backup to localStorage
+  saveTrades(trades);
+  
+  toast('Trade deleted ✓', 'success');
+  // renderAll() will be called by realtime listener
 }
 
 /* ═══ CALC PNL ═══ */
@@ -982,7 +1202,7 @@ function renderExecutionQualitySummary(rich) {
   </div>`;
 }
 
-/* ═══ EXPORT ═══ */
+/* ═══ EXPORT - EXCEL COMPATIBLE ═══ */
 function exportCSV() {
   const headers = ['Date','Symbol','Trade Type','Entry Price','Stop Loss','SL Size','Exit Price',
   'Points','Target 1','Target 2','Target 3','Target 4','Capital (INR)','P&L (INR)','Return %','R:R Ratio',
@@ -1001,13 +1221,15 @@ function exportCSV() {
     ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
   });
   
-  const csv = [headers.join(','),...rows].join('\n');
-  const blob = new Blob([csv],{type:'text/csv'});
+  // Add UTF-8 BOM for Excel compatibility
+  const csv = '\uFEFF' + [headers.join(','),...rows].join('\n');
+  
+  const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`tradevault_export_${new Date().toISOString().substring(0,10)}.csv`;
+  a.download=`TradeVault_Export_${new Date().toISOString().substring(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(a.href);
-  toast('CSV exported!','success');
+  toast('Excel-ready CSV exported! 📊','success');
 }
 
 /* ═══ VIEW ROUTING ═══ */
@@ -1085,19 +1307,7 @@ function renderAll() {
   if(n==='report')    renderAnalytics();
 }
 
-/* ═══ INIT ═══ */
-document.addEventListener('DOMContentLoaded',()=>{
-  const today = new Date().toISOString().substring(0,10);
-  const fd = document.getElementById('fDate'); if(fd) fd.value=today;
-  renderDashboard();
-  populateFilters();
-  updateSidebarCapital();
-  if (document.getElementById('view-add')) {
-    document.getElementById('fCapital')?.addEventListener('input', validateFormCapital);
-  }
-});
-
-/* ═══ CALENDAR FUNCTIONALITY ═══ */
+/* ═══ CALENDAR FUNCTIONS ═══ */
 let calendarPeriod = 'month';
 let currentDate = new Date();
 
@@ -1414,6 +1624,10 @@ function deleteFilteredTrades() {
   
   const indicesToDelete = filtered.map(t => t._i).sort((a, b) => b - a);
   indicesToDelete.forEach(idx => {
+    const trade = trades[idx];
+    if (trade.firebaseId) {
+      deleteTradeFromCloud(trade.firebaseId);
+    }
     trades.splice(idx, 1);
   });
   
@@ -1453,3 +1667,48 @@ function showMonthDetails(year, month) {
 function initCalendar() {
   renderCalendar();
 }
+
+/* ═══ CONNECTION HANDLERS ═══ */
+window.addEventListener('online', () => {
+  console.log('🌐 Back online');
+  updateSyncStatus();
+  if (syncEnabled && currentUserId) {
+    setupRealtimeSync();
+    toast('🔄 Reconnected - syncing...', 'success');
+  }
+});
+
+window.addEventListener('offline', () => {
+  console.log('✈️ Offline mode');
+  updateSyncStatus();
+  toast('⚠️ Offline - changes will sync when back online', 'error');
+});
+
+/* ═══ INIT ═══ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Initialize Firebase first
+  initFirebase();
+  
+  const today = new Date().toISOString().substring(0,10);
+  const fd = document.getElementById('fDate'); if(fd) fd.value=today;
+  
+  // Initial render (will be updated by realtime listener)
+  if (!syncEnabled) {
+    renderDashboard();
+    populateFilters();
+  }
+  
+  updateSidebarCapital();
+  updateSyncStatus();
+  
+  if (document.getElementById('view-add')) {
+    document.getElementById('fCapital')?.addEventListener('input', validateFormCapital);
+  }
+  
+  // Periodic localStorage backup
+  setInterval(() => {
+    if (syncEnabled) {
+      localStorage.setItem(STORE_KEY, JSON.stringify(trades));
+    }
+  }, 30000);
+});

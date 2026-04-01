@@ -68,30 +68,34 @@ Analytics
 <div class="topbar-badge" id="topbarBadge">Overview</div>
 </div>
 <div class="topbar-actions">
-<button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">
-<svg id="themeIcon" viewBox="0 0 24 24">
-<g class="sun-icon">
-<circle cx="12" cy="12" r="4"/>
-<line x1="12" y1="2" x2="12" y2="5"/>
-<line x1="12" y1="19" x2="12" y2="22"/>
-<line x1="2" y1="12" x2="5" y2="12"/>
-<line x1="19" y1="12" x2="22" y2="12"/>
-<line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/>
-<line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/>
-<line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>
-<line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/>
-</g>
-<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-</svg>
-</button>
-<button class="btn-outline" onclick="exportCSV()">
-<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-Export CSV
-</button>
-<button class="btn-outline" onclick="window.print()">
-<svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-Print
-</button>
+  <!-- Sync Status Indicator -->
+  <div id="syncStatus" style="font-size:11px;color:var(--text3);margin-right:8px" title="Sync status">
+    ● Checking...
+  </div>
+  <button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">
+    <svg id="themeIcon" viewBox="0 0 24 24">
+      <g class="sun-icon">
+        <circle cx="12" cy="12" r="4"/>
+        <line x1="12" y1="2" x2="12" y2="5"/>
+        <line x1="12" y1="19" x2="12" y2="22"/>
+        <line x1="2" y1="12" x2="5" y2="12"/>
+        <line x1="19" y1="12" x2="22" y2="12"/>
+        <line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/>
+        <line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/>
+        <line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>
+        <line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/>
+      </g>
+      <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+    </svg>
+  </button>
+  <button class="btn-outline" onclick="exportCSV()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    Export Excel
+  </button>
+  <button class="btn-outline" onclick="window.print()">
+    <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+    Print
+  </button>
 </div>
 </header>
 <!-- ── DASHBOARD ── -->
