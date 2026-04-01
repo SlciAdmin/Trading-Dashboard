@@ -1,630 +1,358 @@
 <!DOCTYPE html>
 <html lang="en" data-theme="dark">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>TradeVault — Professional Trading Journal</title>
-  
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-  
-  <!-- Chart.js CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-  
-  <!-- External CSS -->
-  <link rel="stylesheet" href="style.css"/>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>TradeVault — Professional Trading Journal</title>
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<!-- Chart.js CDN -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+<!-- External CSS -->
+<link rel="stylesheet" href="style.css"/>
 </head>
 <body>
-
 <!-- SIDEBAR -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-brand">
-    <div class="brand-logo">
-      <div class="brand-icon">
-        <svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-      </div>
-      <div class="brand-name">TradeVault</div>
-    </div>
-    <div class="brand-tagline">Professional Trading Journal</div>
-  </div>
-  <nav class="sidebar-nav">
-    <a class="nav-item active" data-view="dashboard" onclick="switchView('dashboard',this)">
-      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
-      Dashboard
-    </a>
-    <a class="nav-item" data-view="journal" onclick="switchView('journal',this)">
-      <svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      Trade Journal
-    </a>
-    <a class="nav-item" data-view="add" onclick="switchView('add',this)">
-      <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-      Add Trade
-    </a>
-    <div class="nav-sep"></div>
-    <a class="nav-item" data-view="report" onclick="switchView('report',this)">
-      <svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      Analytics
-    </a>
-  </nav>
-  <div class="capital-box">
-  <div class="cap-row">
-    <div class="cap-label">Capital Deposited</div>
-    <button class="cap-edit-btn" onclick="editDepositedCapital()" title="Edit deposited capital">
-      <svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-      </svg>
-    </button>
-  </div>
-  <div class="cap-value" id="sideCapital" style="cursor:pointer" onclick="editDepositedCapital()">₹0</div>
-  <div class="cap-sub" id="sideCapSub">0 trades logged</div>
-  <div class="cap-utilization" id="capUtilization"></div>
+<div class="sidebar-brand">
+<div class="brand-logo">
+<div class="brand-icon">
+<svg viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+</div>
+<div class="brand-name">TradeVault</div>
+</div>
+<div class="brand-tagline">Professional Trading Journal</div>
+</div>
+<nav class="sidebar-nav">
+<a class="nav-item active" data-view="dashboard" onclick="switchView('dashboard',this)">
+<svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+Dashboard
+</a>
+<a class="nav-item" data-view="journal" onclick="switchView('journal',this)">
+<svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+Trade Journal
+</a>
+<a class="nav-item" data-view="add" onclick="switchView('add',this)">
+<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+Add Trade
+</a>
+<div class="nav-sep"></div>
+<a class="nav-item" data-view="report" onclick="switchView('report',this)">
+<svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+Analytics
+</a>
+</nav>
+<div class="capital-box">
+<div class="cap-row">
+<div class="cap-label">Current Capital</div>
+<button class="cap-edit-btn" onclick="editDepositedCapital()" title="Edit initial capital">
+<svg viewBox="0 0 24 24" style="width:12px;height:12px;stroke:currentColor;fill:none;stroke-width:2">
+<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+<path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+</svg>
+</button>
+</div>
+<div class="cap-value" id="sideCapital" style="cursor:pointer" onclick="editDepositedCapital()">₹0</div>
+<div class="cap-sub" id="sideCapSub">0 trades logged</div>
+<div class="cap-utilization" id="capUtilization"></div>
 </div>
 </aside>
-
 <!-- MAIN -->
 <main class="main-content">
-
-  <!-- TOPBAR -->
-  <header class="topbar">
-    <button class="ham-btn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
-    <div class="topbar-left">
-      <div class="topbar-title" id="topbarTitle">Dashboard</div>
-      <div class="topbar-badge" id="topbarBadge">Overview</div>
-    </div>
-    <div class="topbar-actions">
-      <!-- In your theme toggle button -->
-    <button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">
-    <svg id="themeIcon" viewBox="0 0 24 24">
-    <!-- Sun icon - NO inline style -->
-    <g class="sun-icon">
-      <circle cx="12" cy="12" r="4"/>
-      <line x1="12" y1="2" x2="12" y2="5"/>
-      <line x1="12" y1="19" x2="12" y2="22"/>
-      <line x1="2" y1="12" x2="5" y2="12"/>
-      <line x1="19" y1="12" x2="22" y2="12"/>
-      <line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/>
-      <line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/>
-      <line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>
-      <line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/>
-    </g>
-    <!-- Moon icon -->
-    <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
-  </svg>
+<!-- TOPBAR -->
+<header class="topbar">
+<button class="ham-btn" onclick="toggleSidebar()"><span></span><span></span><span></span></button>
+<div class="topbar-left">
+<div class="topbar-title" id="topbarTitle">Dashboard</div>
+<div class="topbar-badge" id="topbarBadge">Overview</div>
+</div>
+<div class="topbar-actions">
+<button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">
+<svg id="themeIcon" viewBox="0 0 24 24">
+<g class="sun-icon">
+<circle cx="12" cy="12" r="4"/>
+<line x1="12" y1="2" x2="12" y2="5"/>
+<line x1="12" y1="19" x2="12" y2="22"/>
+<line x1="2" y1="12" x2="5" y2="12"/>
+<line x1="19" y1="12" x2="22" y2="12"/>
+<line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/>
+<line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/>
+<line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>
+<line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/>
+</g>
+<path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+</svg>
 </button>
-      <button class="btn-outline" onclick="exportCSV()">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Export CSV
-      </button>
-      <button class="btn-outline" onclick="window.print()">
-        <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-        Print
-      </button>
-    </div>
-  </header>
-
-  <!-- ── DASHBOARD ── -->
-  <section class="view active" id="view-dashboard">
-    <div class="view-header">
-      <div>
-        <div class="view-title">Dashboard</div>
-        <div class="view-sub" id="dashDate">Performance overview</div>
-      </div>
-      <!-- ✅ Add Trade Button Added Here -->
-      <button class="btn-primary" onclick="switchView('add',document.querySelector('[data-view=add]'))">
-        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#07080C;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Trade
-      </button>
-    </div>
-    <div class="kpi-strip">
-      <div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Total P&amp;L</div><div class="kpi-icon c1">₹</div></div><div class="kpi-val" id="kpiPnl">₹0</div><div class="kpi-change" id="kpiPnlSub">Realised</div></div>
-      <div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Win Rate</div><div class="kpi-icon c2">W%</div></div><div class="kpi-val" id="kpiWin">0%</div><div class="kpi-change" id="kpiWinSub">Wins / Closed</div></div>
-      <div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Total Trades</div><div class="kpi-icon c3">#</div></div><div class="kpi-val" id="kpiTrades">0</div><div class="kpi-change" id="kpiTradesSub">All time</div></div>
-      <div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Avg P&amp;L / Trade</div><div class="kpi-icon c4">~</div></div><div class="kpi-val" id="kpiAvg">₹0</div><div class="kpi-change">Per closed trade</div></div>
-      <div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Avg R:R</div><div class="kpi-icon c5">R</div></div><div class="kpi-val" id="kpiRR">0</div><div class="kpi-change">Risk:Reward ratio</div></div>
-      <div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Capital Deposited</div><div class="kpi-icon c6">₹</div></div><div class="kpi-val" id="kpiCap">₹0</div><div class="kpi-change">Total deployed</div></div>
-    </div>
-    <div class="chart-grid" style="margin-bottom:14px">
-      <div class="chart-box"><div class="chart-head"><div class="section-label">Equity Curve</div><div class="section-tag">Cumulative P&amp;L</div></div><div class="chart-wrap"><canvas id="equityChart"></canvas></div></div>
-      <div class="chart-box"><div class="chart-head"><div class="section-label">Win / Loss</div><div class="section-tag">Distribution</div></div><div class="chart-wrap"><canvas id="winLossChart"></canvas></div></div>
-    </div>
-    <div class="chart-grid-3" style="margin-bottom:22px">
-      <div class="chart-box"><div class="chart-head"><div class="section-label">P&amp;L by Symbol</div><div class="section-tag">Breakdown</div></div><div class="chart-wrap"><canvas id="symbolChart"></canvas></div></div>
-      <div class="chart-box"><div class="chart-head"><div class="section-label">Trade Type</div><div class="section-tag">Buy vs Sell</div></div><div class="chart-wrap"><canvas id="typeChart"></canvas></div></div>
-      <div class="chart-box"><div class="chart-head"><div class="section-label">Monthly P&amp;L</div><div class="section-tag">Month View</div></div><div class="chart-wrap"><canvas id="monthChart"></canvas></div></div>
-    </div>
-    <div class="table-box">
-      <div class="table-top">
-        <div><div class="section-label">Recent Trades</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Last 20 closed &amp; open positions</div></div>
-        <input class="input-field" id="dashSearch" placeholder="Search symbol or date…" oninput="renderRecentTable()" style="width:220px"/>
-      </div>
-      <div class="table-scroll">
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Date</th><th>Symbol</th><th>Type</th><th>Entry</th><th>Exit</th><th>Stop Loss</th><th>Points</th><th>P&amp;L (₹)</th><th>Return %</th><th>Capital (₹)</th><th>R:R</th><th>Reason</th><th>Result</th></tr></thead>
-          <tbody id="recentTbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── JOURNAL ── -->
-  <section class="view" id="view-journal">
-    <div class="view-header">
-      <div><div class="view-title">Trade Journal</div><div class="view-sub">Full trade history with filters</div></div>
-      <button class="btn-primary" onclick="switchView('add',document.querySelector('[data-view=add]'))">
-        <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#07080C;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-        Add Trade
-      </button>
-    </div>
-    <!-- Replace the filter-row section in Trade Journal with this -->
+<button class="btn-outline" onclick="exportCSV()">
+<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+Export CSV
+</button>
+<button class="btn-outline" onclick="window.print()">
+<svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+Print
+</button>
+</div>
+</header>
+<!-- ── DASHBOARD ── -->
+<section class="view active" id="view-dashboard">
+<div class="view-header">
+<div>
+<div class="view-title">Dashboard</div>
+<div class="view-sub" id="dashDate">Performance overview</div>
+</div>
+<button class="btn-primary" onclick="switchView('add',document.querySelector('[data-view=add]'))">
+<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#07080C;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+Add Trade
+</button>
+</div>
+<div class="kpi-strip">
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Total P&amp;L</div><div class="kpi-icon c1">₹</div></div><div class="kpi-val" id="kpiPnl">₹0</div><div class="kpi-change" id="kpiPnlSub">Realised</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Win Rate</div><div class="kpi-icon c2">W%</div></div><div class="kpi-val" id="kpiWin">0%</div><div class="kpi-change" id="kpiWinSub">Wins / Closed</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Total Trades</div><div class="kpi-icon c3">#</div></div><div class="kpi-val" id="kpiTrades">0</div><div class="kpi-change" id="kpiTradesSub">All time</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Avg P&amp;L / Trade</div><div class="kpi-icon c4">~</div></div><div class="kpi-val" id="kpiAvg">₹0</div><div class="kpi-change">Per closed trade</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Avg R:R</div><div class="kpi-icon c5">R</div></div><div class="kpi-val" id="kpiRR">0</div><div class="kpi-change">Risk:Reward ratio</div></div>
+<div class="kpi-card"><div class="kpi-top"><div class="kpi-label">Current Capital</div><div class="kpi-icon c6">₹</div></div><div class="kpi-val" id="kpiCap">₹0</div><div class="kpi-change">Deposit + P&L</div></div>
+</div>
+<div class="chart-grid" style="margin-bottom:14px">
+<div class="chart-box"><div class="chart-head"><div class="section-label">Equity Curve</div><div class="section-tag">Cumulative P&amp;L</div></div><div class="chart-wrap"><canvas id="equityChart"></canvas></div></div>
+<div class="chart-box"><div class="chart-head"><div class="section-label">Win / Loss</div><div class="section-tag">Distribution</div></div><div class="chart-wrap"><canvas id="winLossChart"></canvas></div></div>
+</div>
+<div class="chart-grid-3" style="margin-bottom:22px">
+<div class="chart-box"><div class="chart-head"><div class="section-label">P&amp;L by Symbol</div><div class="section-tag">Breakdown</div></div><div class="chart-wrap"><canvas id="symbolChart"></canvas></div></div>
+<div class="chart-box"><div class="chart-head"><div class="section-label">Trade Type</div><div class="section-tag">Buy vs Sell</div></div><div class="chart-wrap"><canvas id="typeChart"></canvas></div></div>
+<div class="chart-box"><div class="chart-head"><div class="section-label">Monthly P&amp;L</div><div class="section-tag">Month View</div></div><div class="chart-wrap"><canvas id="monthChart"></canvas></div></div>
+</div>
+<div class="table-box">
+<div class="table-top">
+<div><div class="section-label">Recent Trades</div><div style="font-size:11px;color:var(--text3);margin-top:2px">Last 20 closed &amp; open positions</div></div>
+<input class="input-field" id="dashSearch" placeholder="Search symbol or date…" oninput="renderRecentTable()" style="width:220px"/>
+</div>
+<div class="table-scroll">
+<table class="data-table">
+<thead><tr><th>#</th><th>Date</th><th>Symbol</th><th>Type</th><th>Entry</th><th>Exit</th><th>Stop Loss</th><th>Points</th><th>P&amp;L (₹)</th><th>Return %</th><th>Capital (₹)</th><th>R:R</th><th>Reason</th><th>Result</th></tr></thead>
+<tbody id="recentTbody"></tbody>
+</table>
+</div>
+</div>
+</section>
+<!-- ── JOURNAL ── -->
+<section class="view" id="view-journal">
+<div class="view-header">
+<div><div class="view-title">Trade Journal</div><div class="view-sub">Full trade history with filters</div></div>
+<button class="btn-primary" onclick="switchView('add',document.querySelector('[data-view=add]'))">
+<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#07080C;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+Add Trade
+</button>
+</div>
 <div class="filter-row" style="margin-bottom:14px">
-  <input class="input-field" id="journalSearch" placeholder="Search…" oninput="renderJournal()" style="width:200px"/>
-  <select class="select-field" id="filterMonth" onchange="renderJournal()"><option value="">All Months</option></select>
-  <select class="select-field" id="filterSymbol" onchange="renderJournal()"><option value="">All Symbols</option></select>
-  <select class="select-field" id="filterResult" onchange="renderJournal()">
-    <option value="">All Results</option><option value="win">Win</option><option value="loss">Loss</option><option value="open">Open</option>
-  </select>
-  <!-- ✅ DELETE FILTERED TRADES BUTTON -->
-  <button class="btn-danger" id="deleteFilteredBtn" onclick="deleteFilteredTrades()" style="display:none;margin-left:auto">
-    <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-    Delete Filtered
-  </button>
+<input class="input-field" id="journalSearch" placeholder="Search…" oninput="renderJournal()" style="width:200px"/>
+<select class="select-field" id="filterMonth" onchange="renderJournal()"><option value="">All Months</option></select>
+<select class="select-field" id="filterSymbol" onchange="renderJournal()"><option value="">All Symbols</option></select>
+<select class="select-field" id="filterResult" onchange="renderJournal()">
+<option value="">All Results</option><option value="win">Win</option><option value="loss">Loss</option><option value="open">Open</option>
+</select>
+<button class="btn-danger" id="deleteFilteredBtn" onclick="deleteFilteredTrades()" style="display:none;margin-left:auto">
+<svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+Delete Filtered
+</button>
 </div>
-    <div class="table-box">
-      <div class="table-scroll">
-        <table class="data-table">
-          <thead><tr><th>#</th><th>Date</th><th>Symbol</th><th>Type</th><th>Entry</th><th>Exit</th><th>SL</th><th>SL Size</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>Points</th><th>P&amp;L (₹)</th><th>Return %</th><th>Capital (₹)</th><th>R:R</th><th>Reason</th><th>Result</th><th>Actions</th></tr></thead>
-          <tbody id="journalTbody"></tbody>
-        </table>
-      </div>
-      <div class="pagination" id="journalPagination"></div>
-    </div>
-  </section>
-
-  <!-- ── ADD TRADE ── -->
-    <!-- ── ADD TRADE ── -->
-  <section class="view" id="view-add">
-    <div class="view-header"><div><div class="view-title" id="formTitle">Add New Trade</div><div class="view-sub">All calculated fields update automatically</div></div></div>
-    <input type="hidden" id="editIndex" value="-1"/>
-    <div class="form-wrap">
-      <div class="form-card">
-        <div class="form-card-title">Trade Information</div>
-        <div class="form-grid">
-          <div class="form-group"><div class="form-label">Date <span class="req">*</span></div><input type="date" id="fDate" class="form-input"/></div>
-          <div class="form-group"><div class="form-label">Stock Symbol <span class="req">*</span></div><input type="text" id="fSymbol" class="form-input" placeholder="e.g. Nifty, BankNifty"/></div>
-          <div class="form-group"><div class="form-label">Trade Type <span class="req">*</span></div><select id="fType" class="form-input select-field" onchange="calcPnl()"><option value="">Select type…</option><option>Buy Trade</option><option>Sell Trade</option></select></div>
-          <div class="form-group">
-  <div class="form-label">Capital Invested (₹) <span class="req">*</span></div>
-  <input type="number" id="fCapital" class="form-input" placeholder="55000" oninput="calcPnl(); validateFormCapital()"/>
-  <div id="capitalWarning" class="capital-warning" style="display:none;font-size:11px;margin-top:6px"></div>
+<div class="table-box">
+<div class="table-scroll">
+<table class="data-table">
+<thead><tr><th>#</th><th>Date</th><th>Symbol</th><th>Type</th><th>Entry</th><th>Exit</th><th>SL</th><th>SL Size</th><th>T1</th><th>T2</th><th>T3</th><th>T4</th><th>Points</th><th>P&amp;L (₹)</th><th>Return %</th><th>Capital (₹)</th><th>R:R</th><th>Reason</th><th>Result</th><th>Actions</th></tr></thead>
+<tbody id="journalTbody"></tbody>
+</table>
 </div>
-      </div>
-      <div class="form-card">
-        <div class="form-card-title">Price Levels</div>
-        <div class="form-grid">
-          <div class="form-group"><div class="form-label">Entry Price <span class="req">*</span></div><input type="number" id="fEntry" class="form-input" placeholder="0.00" oninput="calcPnl()"/></div>
-          <div class="form-group"><div class="form-label">Stop Loss <span class="req">*</span></div><input type="number" id="fSL" class="form-input" placeholder="0.00" oninput="calcPnl()"/></div>
-          <div class="form-group"><div class="form-label">Exit Price</div><input type="number" id="fExit" class="form-input" placeholder="0.00 (leave blank if open)" oninput="calcPnl()"/></div>
-          <div class="form-group"><div class="form-label">Target 1</div><input type="number" id="fT1" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/></div>
-          <div class="form-group"><div class="form-label">Target 2</div><input type="number" id="fT2" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/></div>
-          <div class="form-group"><div class="form-label">Target 3</div><input type="number" id="fT3" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/></div>
-          <div class="form-group"><div class="form-label">Target 4</div><input type="number" id="fT4" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/></div>
-        </div>
-      </div>
-      <div class="form-card">
-        <div class="form-card-title">Auto-Calculated Fields</div>
-        <div class="form-grid">
-          <div class="form-group"><div class="form-label">SL Size</div><div class="calc-val" id="calcSLSize">—</div></div>
-          <div class="form-group"><div class="form-label">Points Captured / Lost</div><div class="calc-val" id="calcPoints">—</div></div>
-          <div class="form-group"><div class="form-label">Profit / Loss (₹)</div><div class="calc-val" id="calcPnL">—</div></div>
-          <div class="form-group"><div class="form-label">Return %</div><div class="calc-val" id="calcPct">—</div></div>
-          <div class="form-group"><div class="form-label">Risk : Reward Ratio</div><div class="calc-val" id="calcRR">—</div></div>
-        </div>
-        <div class="form-actions"><button class="btn-cancel" onclick="cancelEdit()">Cancel</button><button class="btn-save" onclick="saveTrade()">Save Trade</button></div>
-      </div>
-      <div class="form-card">
-        <div class="form-card-title">Notes &amp; Context</div>
-        <div class="form-grid">
-          <div class="form-group fg-span2"><div class="form-label">Reason For Trade</div><input type="text" id="fReason" class="form-input" placeholder="Setup, breakout, reversal, support test…"/></div>
-          <div class="form-group fg-span3"><div class="form-label">System Notes / Objective</div><textarea id="fObjective" class="form-input form-textarea" placeholder="Trading plan objective, observations, what you learned…"></textarea></div>
-        </div>
-      </div>
-      
-      <!-- ✅ NEW: TRADE EXECUTION QUALITY SECTION -->
-      <div class="form-card">
-        <div class="form-card-title">Trade Execution Quality</div>
-        <div class="form-grid">
-          <!-- Entry Discipline -->
-          <div class="form-group">
-            <div class="form-label">Entry Discipline</div>
-            <div class="radio-group">
-              <label class="radio-option"><input type="radio" name="fEntryDiscipline" value="perfect" checked/> <span>Perfect</span></label>
-              <label class="radio-option"><input type="radio" name="fEntryDiscipline" value="early"/> <span>Early</span></label>
-              <label class="radio-option"><input type="radio" name="fEntryDiscipline" value="late"/> <span>Late</span></label>
-            </div>
-          </div>
-          
-          <!-- SL Placement -->
-          <div class="form-group">
-            <div class="form-label">SL Placement</div>
-            <div class="radio-group">
-              <label class="radio-option"><input type="radio" name="fSLPlacement" value="system" checked/> <span>As per system</span></label>
-              <label class="radio-option"><input type="radio" name="fSLPlacement" value="emotional"/> <span>Emotional</span></label>
-            </div>
-          </div>
-          
-          <!-- Exit Quality -->
-          <div class="form-group">
-            <div class="form-label">Exit Quality</div>
-            <div class="radio-group">
-              <label class="radio-option"><input type="radio" name="fExitQuality" value="plan" checked/> <span>As per plan</span></label>
-              <label class="radio-option"><input type="radio" name="fExitQuality" value="panic"/> <span>Panic exit</span></label>
-              <label class="radio-option"><input type="radio" name="fExitQuality" value="greed"/> <span>Greed hold</span></label>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-    </div>
-  </section>
-
-  <!-- ── ANALYTICS ── ✅ UPDATED WITH CALENDAR -->
-    <!-- ── ANALYTICS ── ✅ UPDATED WITH EXECUTION QUALITY -->
-  <section class="view" id="view-report">
-    <div class="view-header">
-      <div><div class="view-title">Analytics Report</div><div class="view-sub">Deep performance metrics</div></div>
-      <button class="btn-outline" onclick="window.print()">
-        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-        Download Report
-      </button>
-    </div>
-    <div class="stats-grid" id="statsGrid"></div>
-    
-    <!-- ✅ EXECUTION QUALITY CHARTS SECTION -->
-    <div class="view-header" style="margin-top:24px">
-      <div><div class="view-title" style="font-size:18px">Trade Execution Quality</div><div class="view-sub">Analyze your discipline & decision-making</div></div>
-    </div>
-    
-    <div class="exec-quality-grid">
-      <div class="exec-card">
-        <div class="exec-card-title">Entry Discipline</div>
-        <div class="exec-chart-wrap"><canvas id="entryDisciplineChart"></canvas></div>
-        <div class="exec-legend">
-          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--emerald)"></div><span>Perfect</span></div>
-          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--amber)"></div><span>Early</span></div>
-          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Late</span></div>
-        </div>
-      </div>
-      <div class="exec-card">
-        <div class="exec-card-title">SL Placement</div>
-        <div class="exec-chart-wrap"><canvas id="slPlacementChart"></canvas></div>
-        <div class="exec-legend">
-          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--cyan)"></div><span>As per system</span></div>
-          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Emotional</span></div>
-        </div>
-      </div>
-      <div class="exec-card">
-        <div class="exec-card-title">Exit Quality</div>
-        <div class="exec-chart-wrap"><canvas id="exitQualityChart"></canvas></div>
-        <div class="exec-legend">
-          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--emerald)"></div><span>As per plan</span></div>
-          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Panic exit</span></div>
-          <div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--amber)"></div><span>Greed hold</span></div>
-        </div>
-      </div>
-    </div>
-    
-    <!-- P&L by Execution Quality -->
-    <div class="chart-box" style="margin-bottom:20px">
-      <div class="chart-head"><div class="section-label">Avg P&L by Entry Discipline</div><div class="section-tag">Performance Impact</div></div>
-      <div class="chart-wrap" style="height:200px"><canvas id="pnlByExecutionChart"></canvas></div>
-    </div>
-    
-    <!-- Execution Quality Summary Stats -->
-    <div class="stats-grid" id="execQualitySummary"></div>
-    
-    <!-- CALENDAR SECTION -->
-    <div class="calendar-section">
-      <div class="calendar-header">
-        <div class="calendar-controls">
-          <div class="time-period-selector">
-            <button class="period-btn active" onclick="setCalendarPeriod('day')" data-period="day">Day</button>
-            <button class="period-btn" onclick="setCalendarPeriod('week')" data-period="week">Week</button>
-            <button class="period-btn" onclick="setCalendarPeriod('month')" data-period="month">Month</button>
-            <button class="period-btn" onclick="setCalendarPeriod('quarter')" data-period="quarter">Quarter</button>
-            <button class="period-btn" onclick="setCalendarPeriod('year')" data-period="year">Year</button>
-          </div>
-          <div class="calendar-navigation">
-            <button class="nav-btn" onclick="navigateCalendar(-1)">
-              <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            <div class="current-period-label" id="currentPeriodLabel">March 2026</div>
-            <button class="nav-btn" onclick="navigateCalendar(1)">
-              <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-            <button class="nav-btn" onclick="navigateCalendar(0)" title="Today">
-              <svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            </button>
-          </div>
-        </div>
-        <div class="calendar-legend">
-          <div class="legend-item"><div class="legend-box profit"></div><span>Profit</span></div>
-          <div class="legend-item"><div class="legend-box loss"></div><span>Loss</span></div>
-          <div class="legend-item"><div class="legend-box neutral"></div><span>No Trade</span></div>
-        </div>
-      </div>
-      <div class="calendar-grid" id="calendarGrid"></div>
-      <div class="calendar-summary" id="calendarSummary"></div>
-    </div>
-    
-    <div class="chart-grid" style="margin-bottom:14px">
-      <div class="chart-box">
-        <div class="chart-head"><div class="section-label">R:R Distribution</div><div class="section-tag">Per Trade</div></div>
-        <div class="chart-wrap"><canvas id="rrChart"></canvas></div>
-      </div>
-    </div>
-    <div class="table-box">
-      <div class="table-top"><div class="section-label">Full Statistics Table</div></div>
-      <div class="table-scroll">
-        <table class="data-table" id="reportTable">
-          <thead><tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr></thead>
-          <tbody id="reportTbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </section>
-
+<div class="pagination" id="journalPagination"></div>
+</div>
+</section>
+<!-- ── ADD TRADE ── -->
+<section class="view" id="view-add">
+<div class="view-header"><div><div class="view-title" id="formTitle">Add New Trade</div><div class="view-sub">All calculated fields update automatically</div></div></div>
+<input type="hidden" id="editIndex" value="-1"/>
+<div class="form-wrap">
+<div class="form-card">
+<div class="form-card-title">Trade Information</div>
+<div class="form-grid">
+<div class="form-group"><div class="form-label">Date <span class="req">*</span></div><input type="date" id="fDate" class="form-input"/></div>
+<div class="form-group"><div class="form-label">Stock Symbol <span class="req">*</span></div><input type="text" id="fSymbol" class="form-input" placeholder="e.g. Nifty, BankNifty"/></div>
+<div class="form-group"><div class="form-label">Trade Type <span class="req">*</span></div><select id="fType" class="form-input select-field" onchange="calcPnl()"><option value="">Select type…</option><option>Buy Trade</option><option>Sell Trade</option></select></div>
+<div class="form-group">
+<div class="form-label">Capital Invested (₹) <span class="req">*</span></div>
+<input type="number" id="fCapital" class="form-input" placeholder="55000" oninput="calcPnl(); validateFormCapital()"/>
+<div id="capitalWarning" class="capital-warning" style="display:none;font-size:11px;margin-top:6px"></div>
+</div>
+</div>
+<div class="form-card">
+<div class="form-card-title">Price Levels</div>
+<div class="form-grid">
+<div class="form-group"><div class="form-label">Entry Price <span class="req">*</span></div><input type="number" id="fEntry" class="form-input" placeholder="0.00" oninput="calcPnl()"/></div>
+<div class="form-group"><div class="form-label">Stop Loss <span class="req">*</span></div><input type="number" id="fSL" class="form-input" placeholder="0.00" oninput="calcPnl()"/></div>
+<div class="form-group"><div class="form-label">Exit Price</div><input type="number" id="fExit" class="form-input" placeholder="0.00 (leave blank if open)" oninput="calcPnl()"/></div>
+<div class="form-group"><div class="form-label">Target 1</div><input type="number" id="fT1" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/></div>
+<div class="form-group"><div class="form-label">Target 2</div><input type="number" id="fT2" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/></div>
+<div class="form-group"><div class="form-label">Target 3</div><input type="number" id="fT3" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/></div>
+<div class="form-group"><div class="form-label">Target 4</div><input type="number" id="fT4" class="form-input" placeholder="Auto" readonly style="background:var(--surface3);cursor:not-allowed"/></div>
+</div>
+</div>
+<div class="form-card">
+<div class="form-card-title">Auto-Calculated Fields</div>
+<div class="form-grid">
+<div class="form-group"><div class="form-label">SL Size</div><div class="calc-val" id="calcSLSize">—</div></div>
+<div class="form-group"><div class="form-label">Points Captured / Lost</div><div class="calc-val" id="calcPoints">—</div></div>
+<div class="form-group"><div class="form-label">Profit / Loss (₹)</div><div class="calc-val" id="calcPnL">—</div></div>
+<div class="form-group"><div class="form-label">Return %</div><div class="calc-val" id="calcPct">—</div></div>
+<div class="form-group"><div class="form-label">Risk : Reward Ratio</div><div class="calc-val" id="calcRR">—</div></div>
+</div>
+<div class="form-actions"><button class="btn-cancel" onclick="cancelEdit()">Cancel</button><button class="btn-save" onclick="saveTrade()">Save Trade</button></div>
+</div>
+<div class="form-card">
+<div class="form-card-title">Notes &amp; Context</div>
+<div class="form-grid">
+<div class="form-group fg-span2"><div class="form-label">Reason For Trade</div><input type="text" id="fReason" class="form-input" placeholder="Setup, breakout, reversal, support test…"/></div>
+<div class="form-group fg-span3"><div class="form-label">System Notes / Objective</div><textarea id="fObjective" class="form-input form-textarea" placeholder="Trading plan objective, observations, what you learned…"></textarea></div>
+</div>
+</div>
+<div class="form-card">
+<div class="form-card-title">Trade Execution Quality</div>
+<div class="form-grid">
+<div class="form-group">
+<div class="form-label">Entry Discipline</div>
+<div class="radio-group">
+<label class="radio-option"><input type="radio" name="fEntryDiscipline" value="perfect" checked/> <span>Perfect</span></label>
+<label class="radio-option"><input type="radio" name="fEntryDiscipline" value="early"/> <span>Early</span></label>
+<label class="radio-option"><input type="radio" name="fEntryDiscipline" value="late"/> <span>Late</span></label>
+</div>
+</div>
+<div class="form-group">
+<div class="form-label">SL Placement</div>
+<div class="radio-group">
+<label class="radio-option"><input type="radio" name="fSLPlacement" value="system" checked/> <span>As per system</span></label>
+<label class="radio-option"><input type="radio" name="fSLPlacement" value="emotional"/> <span>Emotional</span></label>
+</div>
+</div>
+<div class="form-group">
+<div class="form-label">Exit Quality</div>
+<div class="radio-group">
+<label class="radio-option"><input type="radio" name="fExitQuality" value="plan" checked/> <span>As per plan</span></label>
+<label class="radio-option"><input type="radio" name="fExitQuality" value="panic"/> <span>Panic exit</span></label>
+<label class="radio-option"><input type="radio" name="fExitQuality" value="greed"/> <span>Greed hold</span></label>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- ── ANALYTICS ── -->
+<section class="view" id="view-report">
+<div class="view-header">
+<div><div class="view-title">Analytics Report</div><div class="view-sub">Deep performance metrics</div></div>
+<button class="btn-outline" onclick="window.print()">
+<svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+Download Report
+</button>
+</div>
+<div class="stats-grid" id="statsGrid"></div>
+<div class="view-header" style="margin-top:24px">
+<div><div class="view-title" style="font-size:18px">Trade Execution Quality</div><div class="view-sub">Analyze your discipline & decision-making</div></div>
+</div>
+<div class="exec-quality-grid">
+<div class="exec-card">
+<div class="exec-card-title">Entry Discipline</div>
+<div class="exec-chart-wrap"><canvas id="entryDisciplineChart"></canvas></div>
+<div class="exec-legend">
+<div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--emerald)"></div><span>Perfect</span></div>
+<div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--amber)"></div><span>Early</span></div>
+<div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Late</span></div>
+</div>
+</div>
+<div class="exec-card">
+<div class="exec-card-title">SL Placement</div>
+<div class="exec-chart-wrap"><canvas id="slPlacementChart"></canvas></div>
+<div class="exec-legend">
+<div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--cyan)"></div><span>As per system</span></div>
+<div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Emotional</span></div>
+</div>
+</div>
+<div class="exec-card">
+<div class="exec-card-title">Exit Quality</div>
+<div class="exec-chart-wrap"><canvas id="exitQualityChart"></canvas></div>
+<div class="exec-legend">
+<div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--emerald)"></div><span>As per plan</span></div>
+<div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--rose)"></div><span>Panic exit</span></div>
+<div class="exec-legend-item"><div class="exec-legend-dot" style="background:var(--amber)"></div><span>Greed hold</span></div>
+</div>
+</div>
+</div>
+<div class="chart-box" style="margin-bottom:20px">
+<div class="chart-head"><div class="section-label">Avg P&L by Entry Discipline</div><div class="section-tag">Performance Impact</div></div>
+<div class="chart-wrap" style="height:200px"><canvas id="pnlByExecutionChart"></canvas></div>
+</div>
+<div class="stats-grid" id="execQualitySummary"></div>
+<div class="calendar-section">
+<div class="calendar-header">
+<div class="calendar-controls">
+<div class="time-period-selector">
+<button class="period-btn active" onclick="setCalendarPeriod('day')" data-period="day">Day</button>
+<button class="period-btn" onclick="setCalendarPeriod('week')" data-period="week">Week</button>
+<button class="period-btn" onclick="setCalendarPeriod('month')" data-period="month">Month</button>
+<button class="period-btn" onclick="setCalendarPeriod('quarter')" data-period="quarter">Quarter</button>
+<button class="period-btn" onclick="setCalendarPeriod('year')" data-period="year">Year</button>
+</div>
+<div class="calendar-navigation">
+<button class="nav-btn" onclick="navigateCalendar(-1)">
+<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="15 18 9 12 15 6"/></svg>
+</button>
+<div class="current-period-label" id="currentPeriodLabel">March 2026</div>
+<button class="nav-btn" onclick="navigateCalendar(1)">
+<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><polyline points="9 18 15 12 9 6"/></svg>
+</button>
+<button class="nav-btn" onclick="navigateCalendar(0)" title="Today">
+<svg viewBox="0 0 24 24" style="width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+</button>
+</div>
+</div>
+<div class="calendar-legend">
+<div class="legend-item"><div class="legend-box profit"></div><span>Profit</span></div>
+<div class="legend-item"><div class="legend-box loss"></div><span>Loss</span></div>
+<div class="legend-item"><div class="legend-box neutral"></div><span>No Trade</span></div>
+</div>
+</div>
+<div class="calendar-grid" id="calendarGrid"></div>
+<div class="calendar-summary" id="calendarSummary"></div>
+</div>
+<div class="chart-grid" style="margin-bottom:14px">
+<div class="chart-box">
+<div class="chart-head"><div class="section-label">R:R Distribution</div><div class="section-tag">Per Trade</div></div>
+<div class="chart-wrap"><canvas id="rrChart"></canvas></div>
+</div>
+</div>
+<div class="table-box">
+<div class="table-top"><div class="section-label">Full Statistics Table</div></div>
+<div class="table-scroll">
+<table class="data-table" id="reportTable">
+<thead><tr><th>Metric</th><th>Value</th><th>Metric</th><th>Value</th></tr></thead>
+<tbody id="reportTbody"></tbody>
+</table>
+</div>
+</div>
+</section>
 </main>
-
 <!-- MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
-  <div class="modal" onclick="event.stopPropagation()">
-    <div class="modal-title" id="modalTitle">Trade Details</div>
-    <div id="modalBody"></div>
-    <div class="modal-actions">
-      <button class="btn-cancel" onclick="closeModal()">Close</button>
-      <button class="btn-danger" id="modalDeleteBtn">Delete</button>
-      <button class="btn-save" id="modalEditBtn">Edit Trade</button>
-    </div>
-  </div>
+<div class="modal" onclick="event.stopPropagation()">
+<div class="modal-title" id="modalTitle">Trade Details</div>
+<div id="modalBody"></div>
+<div class="modal-actions">
+<button class="btn-cancel" onclick="closeModal()">Close</button>
+<button class="btn-danger" id="modalDeleteBtn">Delete</button>
+<button class="btn-save" id="modalEditBtn">Edit Trade</button>
+</div>
+</div>
 </div>
 <div class="toast" id="toast"></div>
-
 <!-- External JS -->
 <script src="app.js"></script>
-
-<!-- Theme & Calendar Scripts -->
-<script>
-/* ═══ THEME MANAGEMENT ═══ */
-const THEME_KEY = 'tradevault_theme';
-function getPreferredTheme() {
-  const saved = localStorage.getItem(THEME_KEY);
-  if (saved) return saved;
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-}
-function applyTheme(theme) {
-  document.documentElement.setAttribute('data-theme', theme);
-  const sunIcon = document.querySelector('.sun-icon');
-  const moonIcon = document.querySelector('.moon-icon');
-  if (sunIcon && moonIcon) {
-    if (theme === 'light') { sunIcon.style.display = 'block'; moonIcon.style.display = 'none'; }
-    else { sunIcon.style.display = 'none'; moonIcon.style.display = 'block'; }
-  }
-  if (typeof renderDashboard === 'function' && document.getElementById('view-dashboard')?.classList.contains('active')) setTimeout(renderDashboard, 50);
-  if (typeof renderAnalytics === 'function' && document.getElementById('view-report')?.classList.contains('active')) setTimeout(renderAnalytics, 50);
-}
-function toggleTheme() {
-  const current = document.documentElement.getAttribute('data-theme') || 'dark';
-  const next = current === 'dark' ? 'light' : 'dark';
-  localStorage.setItem(THEME_KEY, next);
-  applyTheme(next);
-  if (typeof toast === 'function') toast(`Switched to ${next} mode`, 'success');
-}
-document.addEventListener('DOMContentLoaded', function() {
-  const savedTheme = document.documentElement.getAttribute('data-theme');
-  if (!savedTheme) applyTheme(getPreferredTheme());
-});
-
-/* ═══ CALENDAR FUNCTIONALITY ═══ */
-let calendarPeriod = 'month';
-let currentDate = new Date();
-
-function setCalendarPeriod(period) {
-  calendarPeriod = period;
-  document.querySelectorAll('.period-btn').forEach(btn => btn.classList.toggle('active', btn.dataset.period === period));
-  renderCalendar();
-}
-
-function navigateCalendar(direction) {
-  if (direction === 0) { currentDate = new Date(); }
-  else {
-    const d = new Date(currentDate);
-    switch(calendarPeriod) {
-      case 'day': d.setDate(d.getDate() + direction); break;
-      case 'week': d.setDate(d.getDate() + direction * 7); break;
-      case 'month': d.setMonth(d.getMonth() + direction); break;
-      case 'quarter': d.setMonth(d.getMonth() + direction * 3); break;
-      case 'year': d.setFullYear(d.getFullYear() + direction); break;
-    }
-    currentDate = d;
-  }
-  renderCalendar();
-}
-
-function renderCalendar() {
-  const grid = document.getElementById('calendarGrid');
-  const label = document.getElementById('currentPeriodLabel');
-  const summary = document.getElementById('calendarSummary');
-  if (!grid) return;
-  grid.className = 'calendar-grid ' + calendarPeriod + '-view';
-  let cells = [], periodLabel = '';
-  
-  switch(calendarPeriod) {
-    case 'day':
-      cells = renderDayView();
-      periodLabel = currentDate.toLocaleDateString('en-IN', { weekday:'long', year:'numeric', month:'long', day:'numeric' });
-      break;
-    case 'week':
-      cells = renderWeekView();
-      const ws = getWeekStart(currentDate), we = new Date(ws); we.setDate(we.getDate()+6);
-      periodLabel = `Week of ${ws.toLocaleDateString('en-IN',{day:'numeric',month:'short'})} - ${we.toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}`;
-      break;
-    case 'month':
-      cells = renderMonthView();
-      periodLabel = currentDate.toLocaleDateString('en-IN', { month:'long', year:'numeric' });
-      break;
-    case 'quarter':
-      cells = renderQuarterView();
-      const q = Math.floor(currentDate.getMonth()/3)+1;
-      periodLabel = `Q${q} ${currentDate.getFullYear()}`;
-      break;
-    case 'year':
-      cells = renderYearView();
-      periodLabel = currentDate.getFullYear().toString();
-      break;
-  }
-  label.textContent = periodLabel;
-  grid.innerHTML = cells.join('');
-  renderCalendarSummary();
-}
-
-function renderDayView() {
-  const dk = formatDateKey(currentDate), dd = getDayData(dk);
-  const cls = getCellClass(dd.pnl), today = isSameDay(currentDate, new Date());
-  return [`<div class="calendar-cell ${cls} ${today?'today':''}" onclick="showDayDetails('${dk}')">
-    <div class="cell-header"><span class="cell-date">${currentDate.getDate()}</span><span>${currentDate.toLocaleDateString('en-IN',{weekday:'short'})}</span></div>
-    ${dd.pnl!==null?`<div class="cell-pnl ${dd.pnl>=0?'profit':'loss'}">${fmt.currency(dd.pnl,0)}</div><div class="cell-trades">${dd.trades} trade${dd.trades!==1?'s':''}</div>`:'<div class="cell-empty">No trades</div>'}
-  </div>`];
-}
-
-function renderWeekView() {
-  const cells = [], ws = getWeekStart(currentDate);
-  for(let i=0;i<7;i++) {
-    const d = new Date(ws); d.setDate(d.getDate()+i);
-    const dk = formatDateKey(d), dd = getDayData(dk);
-    const cls = getCellClass(dd.pnl), today = isSameDay(d, new Date());
-    cells.push(`<div class="calendar-cell ${cls} ${today?'today':''}" onclick="showDayDetails('${dk}')">
-      <div class="cell-header"><span class="cell-date">${d.getDate()}</span><span>${d.toLocaleDateString('en-IN',{weekday:'short'})}</span></div>
-      ${dd.pnl!==null?`<div class="cell-pnl ${dd.pnl>=0?'profit':'loss'}">${fmt.currency(dd.pnl,0)}</div><div class="cell-trades">${dd.trades}T</div>`:'<div class="cell-empty">-</div>'}
-    </div>`);
-  }
-  return cells;
-}
-
-function renderMonthView() {
-  const cells = [], y = currentDate.getFullYear(), m = currentDate.getMonth();
-  const fd = new Date(y,m,1), ld = new Date(y,m+1,0), sd = fd.getDay(), td = ld.getDate();
-  for(let i=0;i<sd;i++) cells.push('<div class="calendar-cell neutral"><div class="cell-empty"></div></div>');
-  for(let day=1;day<=td;day++) {
-    const d = new Date(y,m,day), dk = formatDateKey(d), dd = getDayData(dk);
-    const cls = getCellClass(dd.pnl), today = isSameDay(d, new Date());
-    cells.push(`<div class="calendar-cell ${cls} ${today?'today':''}" onclick="showDayDetails('${dk}')">
-      <div class="cell-header"><span class="cell-date">${day}</span></div>
-      ${dd.pnl!==null?`<div class="cell-pnl ${dd.pnl>=0?'profit':'loss'}">${fmt.currency(dd.pnl,0)}</div><div class="cell-trades">${dd.trades}T</div>`:'<div class="cell-empty">-</div>'}
-    </div>`);
-  }
-  return cells;
-}
-
-function renderQuarterView() {
-  const cells = [], y = currentDate.getFullYear(), sm = Math.floor(currentDate.getMonth()/3)*3;
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  for(let i=0;i<3;i++) {
-    const mo = sm+i, md = getMonthData(y,mo), cls = getCellClass(md.pnl);
-    cells.push(`<div class="calendar-cell ${cls}" onclick="showMonthDetails(${y},${mo})">
-      <div class="cell-header"><span class="cell-date">${months[mo]}</span></div>
-      ${md.pnl!==null?`<div class="cell-pnl ${md.pnl>=0?'profit':'loss'}">${fmt.currency(md.pnl,0)}</div><div class="cell-trades">${md.trades} trades</div>`:'<div class="cell-empty">No trades</div>'}
-    </div>`);
-  }
-  return cells;
-}
-
-function renderYearView() {
-  const cells = [], y = currentDate.getFullYear();
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  for(let m=0;m<12;m++) {
-    const md = getMonthData(y,m), cls = getCellClass(md.pnl);
-    cells.push(`<div class="calendar-cell ${cls}" onclick="showMonthDetails(${y},${m})">
-      <div class="cell-header"><span class="cell-date">${months[m]}</span></div>
-      ${md.pnl!==null?`<div class="cell-pnl ${md.pnl>=0?'profit':'loss'}">${fmt.currency(md.pnl,0)}</div><div class="cell-trades">${md.trades} trades</div>`:'<div class="cell-empty">No trades</div>'}
-    </div>`);
-  }
-  return cells;
-}
-
-function getDayData(dateKey) {
-  const dayTrades = trades.filter(t => t.date === dateKey);
-  const enriched = dayTrades.map(enrich);
-  const pnl = enriched.reduce((sum,t) => sum + (t.pnl||0), 0);
-  return { pnl: dayTrades.length>0 ? pnl : null, trades: dayTrades.length };
-}
-
-function getMonthData(year, month) {
-  const monthTrades = trades.filter(t => { const d=new Date(t.date); return d.getFullYear()===year && d.getMonth()===month; });
-  const enriched = monthTrades.map(enrich);
-  const pnl = enriched.reduce((sum,t) => sum + (t.pnl||0), 0);
-  return { pnl: monthTrades.length>0 ? pnl : null, trades: monthTrades.length };
-}
-
-function getCellClass(pnl) { if(pnl===null) return 'neutral'; return pnl>=0?'profit':'loss'; }
-function formatDateKey(date) { return date.toISOString().split('T')[0]; }
-function getWeekStart(date) { const d=new Date(date), day=d.getDay(), diff=d.getDate()-day+(day===0?-6:1); return new Date(d.setDate(diff)); }
-function isSameDay(d1,d2) { return d1.getFullYear()===d2.getFullYear() && d1.getMonth()===d2.getMonth() && d1.getDate()===d2.getDate(); }
-
-function renderCalendarSummary() {
-  const summary = document.getElementById('calendarSummary');
-  if(!summary) return;
-  let stats = { totalPnl:0, totalTrades:0, wins:0, losses:0, winRate:0 };
-  
-  switch(calendarPeriod) {
-    case 'day': const dd = getDayData(formatDateKey(currentDate)); stats.totalPnl = dd.pnl||0; stats.totalTrades = dd.trades; break;
-    case 'week': const ws = getWeekStart(currentDate); for(let i=0;i<7;i++){const d=new Date(ws);d.setDate(d.getDate()+i);const dd=getDayData(formatDateKey(d));if(dd.pnl!==null){stats.totalPnl+=dd.pnl;stats.totalTrades+=dd.trades;}} break;
-    case 'month': const md = getMonthData(currentDate.getFullYear(), currentDate.getMonth()); stats.totalPnl = md.pnl||0; stats.totalTrades = md.trades; break;
-    case 'quarter': const y=currentDate.getFullYear(),sm=Math.floor(currentDate.getMonth()/3)*3; for(let i=0;i<3;i++){const mData=getMonthData(y,sm+i);if(mData.pnl!==null){stats.totalPnl+=mData.pnl;stats.totalTrades+=mData.trades;}} break;
-    case 'year': const yy=currentDate.getFullYear(); for(let m=0;m<12;m++){const mData=getMonthData(yy,m);if(mData.pnl!==null){stats.totalPnl+=mData.pnl;stats.totalTrades+=mData.trades;}} break;
-  }
-  
-  const pt = getPeriodTrades();
-  const wins = pt.filter(t=>t.result==='win').length, losses = pt.filter(t=>t.result==='loss').length;
-  stats.wins = wins; stats.losses = losses; stats.winRate = (wins+losses)>0 ? ((wins/(wins+losses))*100).toFixed(1) : 0;
-  
-  summary.innerHTML = `<div class="summary-stat"><div class="summary-label">Total P&L</div><div class="summary-value ${stats.totalPnl>=0?'profit':'loss'}">${fmt.currency(stats.totalPnl,0)}</div></div>
-    <div class="summary-stat"><div class="summary-label">Total Trades</div><div class="summary-value">${stats.totalTrades}</div></div>
-    <div class="summary-stat"><div class="summary-label">Wins</div><div class="summary-value profit">${stats.wins}</div></div>
-    <div class="summary-stat"><div class="summary-label">Losses</div><div class="summary-value loss">${stats.losses}</div></div>
-    <div class="summary-stat"><div class="summary-label">Win Rate</div><div class="summary-value">${stats.winRate}%</div></div>`;
-}
-
-function getPeriodTrades() {
-  const enriched = trades.map(enrich);
-  switch(calendarPeriod) {
-    case 'day': return enriched.filter(t=>t.date===formatDateKey(currentDate));
-    case 'week': const ws=getWeekStart(currentDate),we=new Date(ws);we.setDate(we.getDate()+6);return enriched.filter(t=>{const d=new Date(t.date);return d>=ws&&d<=we;});
-    case 'month': return enriched.filter(t=>{const d=new Date(t.date);return d.getFullYear()===currentDate.getFullYear()&&d.getMonth()===currentDate.getMonth();});
-    case 'quarter': const sm=Math.floor(currentDate.getMonth()/3)*3;return enriched.filter(t=>{const d=new Date(t.date);return d.getFullYear()===currentDate.getFullYear()&&d.getMonth()>=sm&&d.getMonth()<sm+3;});
-    case 'year': return enriched.filter(t=>{const d=new Date(t.date);return d.getFullYear()===currentDate.getFullYear();});
-    default: return [];
-  }
-}
-
-function showDayDetails(dateKey) {
-  const dayTrades = trades.filter(t=>t.date===dateKey);
-  if(dayTrades.length===0){toast('No trades on this day','error');return;}
-  switchView('journal',document.querySelector('[data-view="journal"]'));
-  document.getElementById('journalSearch').value = dateKey;
-  renderJournal();
-}
-
-function showMonthDetails(year, month) {
-  switchView('journal',document.querySelector('[data-view="journal"]'));
-  const mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const ml = `${mn[month]} ${year}`;
-  setTimeout(()=>{const s=document.getElementById('filterMonth');if(s){s.value=ml;renderJournal();}},100);
-}
-
-function initCalendar() { renderCalendar(); }
-</script>
-
 </body>
 </html>
