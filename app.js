@@ -597,12 +597,17 @@ const maxWin   = wins.length   ? Math.max(...wins.map(t=>t.pnl))   : 0;
 const maxLoss  = losses.length ? Math.min(...losses.map(t=>t.pnl)) : 0;
 const totalInvested = rich.reduce((a,t)=>a+(t.capital||0),0);
 const expectancy = winRate*avgWin + (1-winRate)*avgLoss;
+
+// ✅ NEW: Calculate Current Capital (Deposit + P&L)
+const currentCapital = getCurrentCapital();
+
 let streak=0,maxStreak=0,curStreak=0;
 rich.filter(t=>t.result!=='open').forEach(t=>{
 if(t.result==='win'){streak++;maxStreak=Math.max(maxStreak,streak);}else streak=0;
 curStreak=streak;
 });
 const profitFactor = losses.length && Math.abs(avgLoss)>0 ? Math.abs(avgWin*wins.length / (avgLoss*losses.length)) : null;
+
 const data = [
 {label:'Total Trades Logged', val:rich.length, clr:''},
 {label:'Closed Trades',       val:closed, clr:''},
@@ -617,8 +622,10 @@ const data = [
 {label:'Avg R:R Ratio',       val:fmt.num(avgRR,2), clr:avgRR>=1?'var(--emerald)':'var(--amber)'},
 {label:'Profit Factor',       val:profitFactor!==null?profitFactor.toFixed(2):'—', clr:profitFactor>=1?'var(--emerald)':'var(--rose)'},
 {label:'Max Win Streak',      val:maxStreak, clr:'var(--cyan)'},
-{label:'Capital Invested',    val:fmt.currency(totalInvested,0), clr:''},
+// ✅ CHANGED: Show Current Capital instead of Capital Invested
+{label:'Current Capital',     val:fmt.currency(currentCapital,0), clr:pnlClr(currentCapital - getDepositedCapital())},
 ];
+
 const grid=document.getElementById('statsGrid'); if(grid){
 grid.innerHTML = data.map(s=>`
 <div class="stat-card">
@@ -626,6 +633,7 @@ grid.innerHTML = data.map(s=>`
 <div class="stat-val" style="color:${s.clr||'var(--text)'}">${s.val}</div>
 </div>`).join('');
 }
+
 const tbody=document.getElementById('reportTbody'); if(tbody){
 const rows=[];
 for(let i=0;i<data.length;i+=2){
@@ -639,6 +647,7 @@ rows.push(`<tr>
 }
 tbody.innerHTML = rows.join('');
 }
+
 destroyChart('rrChart');
 const buckets=[0,0.5,1,1.5,2,2.5,3];
 const counts=new Array(buckets.length).fill(0);
