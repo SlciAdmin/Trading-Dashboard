@@ -25,6 +25,31 @@ const SEED_TRADES = [
 
 const STORE_KEY = 'tradevault_v2';
 
+/* ═══ CAPITAL DEPOSITED MANAGEMENT ═══ */
+const DEPOSIT_KEY = 'tradevault_deposit';
+
+function getDepositedCapital() {
+  const val = localStorage.getItem(DEPOSIT_KEY);
+  return val ? parseFloat(val) : 0;
+}
+
+function setDepositedCapital(amount) {
+  localStorage.setItem(DEPOSIT_KEY, amount.toString());
+  updateSidebarCapital();
+  renderDashboard();
+}
+
+function updateSidebarCapital() {
+  const deposited = getDepositedCapital();
+  const totalInvested = trades.reduce((sum, t) => sum + (t.capital || 0), 0);
+  
+  set('sideCapital', fmt.currency(deposited, 0));
+  set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
+  
+  // Update KPI card too
+  set('kpiCap', fmt.currency(totalInvested, 0));
+}
+
 function loadTrades() {
   try { const r = localStorage.getItem(STORE_KEY); if (r) return JSON.parse(r); } catch(e){}
   return SEED_TRADES.map(t => ({...t}));
@@ -131,6 +156,68 @@ function calcTargets(entry, sl, tradeType) {
     t3: isBuy ? e + 3 * risk : e - 3 * risk,
     t4: isBuy ? e + 4 * risk : e - 4 * risk
   };
+}
+
+/* ═══ EDIT DEPOSITED CAPITAL ═══ */
+function editDepositedCapital() {
+  const current = getDepositedCapital();
+  const newAmount = prompt('Enter your total deposited capital (₹):', current);
+  
+  if (newAmount === null) return; // User cancelled
+  
+  const amount = parseFloat(newAmount);
+  if (isNaN(amount) || amount < 0) {
+    toast('Please enter a valid amount', 'error');
+    return;
+  }
+  
+  setDepositedCapital(amount);
+  toast(`Capital deposited updated to ${fmt.currency(amount, 0)}`, 'success');
+  validateFormCapital(); // Re-validate if on add trade page
+}
+
+/* ═══ CAPITAL VALIDATION ═══ */
+function validateFormCapital() {
+  const deposited = getDepositedCapital();
+  const invested = parseFloat(getv('fCapital'));
+  const warningEl = document.getElementById('capitalWarning');
+  
+  if (!warningEl) return; // Not on add trade page
+  
+  if (deposited <= 0) {
+    warningEl.innerHTML = `<span style="color:var(--amber)">⚠️ Set your deposited capital first</span>`;
+    warningEl.style.display = 'block';
+    return;
+  }
+  
+  if (isNaN(invested) || invested <= 0) {
+    warningEl.style.display = 'none';
+    return;
+  }
+  
+  const percent = (invested / deposited) * 100;
+  
+  if (invested > deposited) {
+    // ❌ Over limit
+    warningEl.innerHTML = `
+      <span style="color:var(--rose)">
+        ⚠️ Investment (₹${fmt.currency(invested,0)}) exceeds deposited capital (₹${fmt.currency(deposited,0)})
+        <br><small>Reduce amount or increase deposited capital</small>
+      </span>`;
+    warningEl.style.display = 'block';
+    warningEl.className = 'capital-warning danger';
+  } else {
+    // ✅ Within limit - show percentage
+    const color = percent > 80 ? 'var(--amber)' : 'var(--emerald)';
+    const cls = percent > 80 ? 'warning' : (percent > 50 ? 'warning' : '');
+    warningEl.innerHTML = `
+      <span style="color:${color}">
+        ✓ Using ${percent.toFixed(1)}% of deposited capital
+        <br><small>₹${fmt.currency(deposited - invested, 0)} remaining</small>
+      </span>`;
+    warningEl.style.display = 'block';
+    warningEl.className = `capital-warning ${cls}`;
+  }
 }
 
 /* ═══ FORMATTERS ═══ */
@@ -470,6 +557,24 @@ function saveTrade() {
   if(!type)       return toast('Please select a trade type.','error');
   if(isNaN(entry))return toast('Please enter a valid entry price.','error');
   if(isNaN(sl))   return toast('Please enter a valid stop loss.','error');
+  
+  // ✅ CAPITAL LIMIT CHECK (Added as requested)
+  const deposited = getDepositedCapital();
+  const invested = parseFloat(getv('fCapital'));
+  let totalInvested = trades.reduce((sum, t) => sum + (t.capital || 0), 0);
+  const editIdx = parseInt(document.getElementById('editIndex').value);
+  
+  // If editing, subtract old capital from total to avoid double counting
+  if (editIdx >= 0 && trades[editIdx]?.capital) {
+    totalInvested -= trades[editIdx].capital;
+  }
+  
+  // Check if new total would exceed deposited capital
+  if (deposited > 0 && (totalInvested + invested) > deposited) {
+    if (!confirm(`⚠️ Total invested capital will exceed deposited amount.\n\nDeposited: ₹${fmt.currency(deposited,0)}\nAfter this trade: ₹${fmt.currency(totalInvested + invested,0)}\n\nContinue anyway?`)) {
+      return;
+    }
+  }
   
   const targets = calcTargets(entry, sl, type);
   
@@ -898,6 +1003,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   const fd = document.getElementById('fDate'); if(fd) fd.value=today;
   renderDashboard();
   populateFilters();
+  
+  // ✅ Initialize deposited capital display
+  updateSidebarCapital();
+  
+  // ✅ Add capital validation listener if on add trade page
+  if (document.getElementById('view-add')) {
+    document.getElementById('fCapital')?.addEventListener('input', validateFormCapital);
+  }
 });
 
 /* ═══ CALENDAR FUNCTIONALITY ═══ */
