@@ -47,8 +47,8 @@ function updateSidebarCapital() {
   set('sideCapital', fmt.currency(deposited, 0));
   set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
   
-  // ✅ FIXED: Show total invested in KPI card (not undefined variable)
-  set('kpiCap', fmt.currency(totalInvested, 0));
+  // ✅ FIXED: Show deposited capital in KPI card (now updates on edit!)
+  set('kpiCap', fmt.currency(getDepositedCapital(), 0));
 }
 
 function loadTrades() {
@@ -295,12 +295,13 @@ function renderDashboard() {
   set('kpiTrades', rich.length);
   set('kpiAvg',  fmt.currency(avgPnl,0));   cls('kpiAvg',pnlCls(avgPnl));
   set('kpiRR',   fmt.num(avgRR,2));
-  set('kpiCap',  fmt.currency(totalInvested,0)); // ✅ Show invested capital in KPI
+  // ✅ FIXED: KPI card now shows deposited capital (updates on edit!)
+  set('kpiCap', fmt.currency(getDepositedCapital(), 0));
   set('kpiPnlSub', `${wins.length}W / ${losses.length}L / ${rich.filter(t=>t.result==='open').length} Open`);
   set('kpiWinSub', `${wins.length} wins of ${total} closed`);
   set('kpiTradesSub', `${rich.length} total logged`);
   
-  // ✅ FIXED: Sidebar shows deposited capital, not invested
+  // ✅ Sidebar shows deposited capital
   const deposited = getDepositedCapital();
   set('sideCapital', fmt.currency(deposited, 0));
   set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
