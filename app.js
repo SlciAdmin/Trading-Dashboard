@@ -43,10 +43,11 @@ function updateSidebarCapital() {
   const deposited = getDepositedCapital();
   const totalInvested = trades.reduce((sum, t) => sum + (t.capital || 0), 0);
   
+  // ✅ FIXED: Show deposited capital in sidebar
   set('sideCapital', fmt.currency(deposited, 0));
   set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
   
-  // Update KPI card too
+  // ✅ FIXED: Show total invested in KPI card (not undefined variable)
   set('kpiCap', fmt.currency(totalInvested, 0));
 }
 
@@ -287,19 +288,22 @@ function renderDashboard() {
   const avgPnl   = total>0 ? totalPnl/total : 0;
   const rrVals   = rich.map(t=>t.rr).filter(v=>v!==null);
   const avgRR    = rrVals.length ? rrVals.reduce((a,b)=>a+b,0)/rrVals.length : 0;
-  const totalCap = rich.reduce((a,t)=>a+(t.capital||0),0);
+  const totalInvested = rich.reduce((a,t)=>a+(t.capital||0),0);
 
   set('kpiPnl',  fmt.currency(totalPnl,0)); cls('kpiPnl',pnlCls(totalPnl));
   set('kpiWin',  fmt.pct(winRate));
   set('kpiTrades', rich.length);
   set('kpiAvg',  fmt.currency(avgPnl,0));   cls('kpiAvg',pnlCls(avgPnl));
   set('kpiRR',   fmt.num(avgRR,2));
-  set('kpiCap',  fmt.currency(totalCap,0));
+  set('kpiCap',  fmt.currency(totalInvested,0)); // ✅ Show invested capital in KPI
   set('kpiPnlSub', `${wins.length}W / ${losses.length}L / ${rich.filter(t=>t.result==='open').length} Open`);
   set('kpiWinSub', `${wins.length} wins of ${total} closed`);
   set('kpiTradesSub', `${rich.length} total logged`);
-  set('sideCapital', fmt.currency(totalCap,0));
-  set('sideCapSub', `${rich.length} trade${rich.length!==1?'s':''} logged`);
+  
+  // ✅ FIXED: Sidebar shows deposited capital, not invested
+  const deposited = getDepositedCapital();
+  set('sideCapital', fmt.currency(deposited, 0));
+  set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
 
   destroyChart('equityChart');
   const sorted = [...rich].filter(t=>t.date&&t.result!=='open').sort((a,b)=>new Date(a.date)-new Date(b.date));
@@ -651,7 +655,7 @@ function renderAnalytics() {
   const avgRR    = rrVals.length ? rrVals.reduce((a,b)=>a+b,0)/rrVals.length : 0;
   const maxWin   = wins.length   ? Math.max(...wins.map(t=>t.pnl))   : 0;
   const maxLoss  = losses.length ? Math.min(...losses.map(t=>t.pnl)) : 0;
-  const totalCap = rich.reduce((a,t)=>a+(t.capital||0),0);
+  const totalInvested = rich.reduce((a,t)=>a+(t.capital||0),0);
   const expectancy = winRate*avgWin + (1-winRate)*avgLoss;
 
   let streak=0,maxStreak=0,curStreak=0;
@@ -676,7 +680,7 @@ function renderAnalytics() {
     {label:'Avg R:R Ratio',       val:fmt.num(avgRR,2), clr:avgRR>=1?'var(--emerald)':'var(--amber)'},
     {label:'Profit Factor',       val:profitFactor!==null?profitFactor.toFixed(2):'—', clr:profitFactor>=1?'var(--emerald)':'var(--rose)'},
     {label:'Max Win Streak',      val:maxStreak, clr:'var(--cyan)'},
-    {label:'Capital Deployed',    val:fmt.currency(totalCap,0), clr:''},
+    {label:'Capital Invested',    val:fmt.currency(totalInvested,0), clr:''},
   ];
 
   const grid=document.getElementById('statsGrid'); if(grid){
