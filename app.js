@@ -41,17 +41,7 @@ function initFirebase() {
       }
     });
     
-    // Anonymous auth for seamless sync
-    auth.signInAnonymously()
-      .then(() => {
-        console.log('✅ Anonymous auth successful');
-      })
-      .catch(err => {
-        console.error('❌ Auth error:', err);
-        toast('Sync unavailable - using local storage', 'error');
-      });
-    
-    // Listen for auth state changes
+    // Listen for auth state changes (NO MORE ANONYMOUS AUTH)
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUserId = user.uid;
@@ -60,6 +50,9 @@ function initFirebase() {
         loadUserSettings();
         syncEnabled = true;
         updateSyncStatus();
+        showDashboard();
+      } else {
+        showLoginScreen();
       }
     });
     
@@ -67,6 +60,113 @@ function initFirebase() {
   } catch (e) {
     console.error('Firebase init error:', e);
     return false;
+  }
+}
+
+/* ═══ AUTHENTICATION FUNCTIONS ═══ */
+function showLoginScreen() {
+  // Remove existing login overlay if any
+  const existing = document.getElementById('loginOverlay');
+  if (existing) existing.remove();
+  
+  const loginHTML = `
+    <div id="loginOverlay" style="position:fixed;inset:0;background:rgba(7,8,12,0.95);backdrop-filter:blur(10px);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:420px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.5);">
+        <div style="text-align:center;margin-bottom:30px;">
+          <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--cyan),#007799);border-radius:12px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+            <svg viewBox="0 0 24 24" style="width:32px;height:32px;fill:none;stroke:#fff;stroke-width:2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h2 style="font-family:'Outfit',sans-serif;font-size:24px;margin-bottom:8px;color:var(--text);">TradeVault</h2>
+          <p style="color:var(--text3);font-size:13px;">Sign in to access your trading journal</p>
+        </div>
+        
+        <div style="margin-bottom:20px;">
+          <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Email Address</label>
+          <input type="email" id="loginEmail" placeholder="your@email.com" style="width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:16px;outline:none;" />
+          
+          <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Password</label>
+          <input type="password" id="loginPassword" placeholder="••••••••" style="width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:8px;outline:none;" />
+          
+          <div id="loginError" style="color:var(--rose);font-size:11px;margin-bottom:12px;display:none;padding:8px;background:rgba(255,77,109,0.1);border-radius:6px;border:1px solid rgba(255,77,109,0.2);"></div>
+        </div>
+        
+        <button onclick="handleLogin()" style="width:100%;padding:12px;background:var(--cyan);border:none;border-radius:8px;color:#07080C;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;transition:all 0.2s;">Sign In</button>
+        <button onclick="handleSignup()" style="width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:all 0.2s;">Create New Account</button>
+        
+        <div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
+          <p style="font-size:11px;color:var(--text3);">Your data syncs across all devices</p>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  document.body.insertAdjacentHTML('beforeend', loginHTML);
+}
+
+function handleLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errorDiv = document.getElementById('loginError');
+  
+  if (!email || !password) {
+    errorDiv.textContent = 'Please enter both email and password';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  
+  auth.signInWithEmailAndPassword(email, password)
+    .then(() => {
+      document.getElementById('loginOverlay').remove();
+      toast('Welcome back! ✓', 'success');
+    })
+    .catch(error => {
+      errorDiv.textContent = error.message;
+      errorDiv.style.display = 'block';
+    });
+}
+
+function handleSignup() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const errorDiv = document.getElementById('loginError');
+  
+  if (!email || !password) {
+    errorDiv.textContent = 'Please enter both email and password';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  
+  if (password.length < 6) {
+    errorDiv.textContent = 'Password must be at least 6 characters';
+    errorDiv.style.display = 'block';
+    return;
+  }
+  
+  auth.createUserWithEmailAndPassword(email, password)
+    .then(() => {
+      document.getElementById('loginOverlay').remove();
+      toast('Account created successfully! ✓', 'success');
+    })
+    .catch(error => {
+      errorDiv.textContent = error.message;
+      errorDiv.style.display = 'block';
+    });
+}
+
+function showDashboard() {
+  // Remove login overlay if exists
+  const overlay = document.getElementById('loginOverlay');
+  if (overlay) overlay.remove();
+}
+
+function handleLogout() {
+  if (confirm('Are you sure you want to logout?')) {
+    auth.signOut().then(() => {
+      toast('Logged out successfully', 'success');
+      location.reload();
+    }).catch(error => {
+      toast('Logout failed: ' + error.message, 'error');
+    });
   }
 }
 
