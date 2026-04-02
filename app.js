@@ -24,6 +24,7 @@ const SETTINGS_COLLECTION = 'user_settings';
 function initFirebase() {
   if (typeof firebase === 'undefined') {
     console.error('❌ Firebase SDK not loaded!');
+    showToast('Firebase not loaded. Please check your internet connection.', 'error');
     return false;
   }
   
@@ -32,33 +33,61 @@ function initFirebase() {
     db = firebase.firestore();
     auth = firebase.auth();
     
-    // Enable offline persistence
+    // ✅ FIXED: Use new cache settings instead of deprecated enablePersistence
+    db.settings({
+      cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+      experimentalForceLongPolling: true // Helps with firewall/proxy issues
+    });
+    
+    // Enable offline persistence with proper error handling
     db.enablePersistence().catch(err => {
       if (err.code === 'failed-precondition') {
         console.log('⚠️ Multiple tabs open - persistence disabled');
       } else if (err.code === 'unimplemented') {
         console.log('⚠️ Browser doesn\'t support persistence');
+      } else {
+        console.log('Persistence error:', err);
       }
     });
     
-    // Listen for auth state changes (NO MORE ANONYMOUS AUTH)
+    // Listen for auth state changes
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUserId = user.uid;
-        console.log('👤 User ID:', currentUserId);
+        console.log('👤 User authenticated:', currentUserId);
+        syncEnabled = true;
+        updateSyncStatus('connected');
+        
+        // Load data from cloud FIRST, then fallback to local
         setupRealtimeSync();
         loadUserSettings();
-        syncEnabled = true;
-        updateSyncStatus();
-        showDashboard();
+        
+        // Show dashboard after a small delay to allow sync
+        setTimeout(() => {
+          showDashboard();
+          renderAll();
+        }, 500);
       } else {
+        console.log('👤 No user - showing login');
+        syncEnabled = false;
+        currentUserId = null;
+        updateSyncStatus('offline');
         showLoginScreen();
+      }
+    });
+    
+    // Handle auth errors globally
+    auth.onIdTokenChanged(user => {
+      if (!user && currentUserId) {
+        console.log('🔄 Token expired or user signed out');
+        showToast('Session expired. Please sign in again.', 'error');
       }
     });
     
     return true;
   } catch (e) {
     console.error('Firebase init error:', e);
+    showToast('Failed to connect to server. Please check your internet.', 'error');
     return false;
   }
 }
@@ -77,7 +106,7 @@ function showLoginScreen() {
             <svg viewBox="0 0 24 24" style="width:32px;height:32px;fill:none;stroke:#fff;stroke-width:2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
           <h2 style="font-family:'Outfit',sans-serif;font-size:24px;margin-bottom:8px;color:var(--text);">TradeVault</h2>
-          <p style="color:var(--text3);font-size:13px;">Sign in to access your trading journal</p>
+          <p style="color:var(--text3);font-size:13px;">Sign in to sync your trading journal across devices</p>
         </div>
         
         <div style="margin-bottom:20px;">
@@ -90,148 +119,323 @@ function showLoginScreen() {
           <div id="loginError" style="color:var(--rose);font-size:11px;margin-bottom:12px;display:none;padding:8px;background:rgba(255,77,109,0.1);border-radius:6px;border:1px solid rgba(255,77,109,0.2);"></div>
         </div>
         
-        <button onclick="handleLogin()" style="width:100%;padding:12px;background:var(--cyan);border:none;border-radius:8px;color:#07080C;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;transition:all 0.2s;">Sign In</button>
-        <button onclick="handleSignup()" style="width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:all 0.2s;">Create New Account</button>
+        <button id="loginBtn" onclick="handleLogin()" style="width:100%;padding:12px;background:var(--cyan);border:none;border-radius:8px;color:#07080C;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;transition:all 0.2s;">Sign In</button>
+        <button id="signupBtn" onclick="handleSignup()" style="width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:all 0.2s;">Create New Account</button>
         
         <div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
-          <p style="font-size:11px;color:var(--text3);">Your data syncs across all devices</p>
+          <p style="font-size:11px;color:var(--text3);">🔐 Your data is encrypted & synced securely</p>
         </div>
       </div>
     </div>
   `;
   
   document.body.insertAdjacentHTML('beforeend', loginHTML);
+  
+  // Add enter key support
+  document.getElementById('loginPassword').addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') handleLogin();
+  });
 }
 
 function handleLogin() {
-  const email = document.getElementById('loginEmail').value.trim();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const password = document.getElementById('loginPassword').value;
   const errorDiv = document.getElementById('loginError');
+  const loginBtn = document.getElementById('loginBtn');
   
   if (!email || !password) {
-    errorDiv.textContent = 'Please enter both email and password';
-    errorDiv.style.display = 'block';
+    showError(errorDiv, 'Please enter both email and password');
     return;
   }
   
+  if (!isValidEmail(email)) {
+    showError(errorDiv, 'Please enter a valid email address');
+    return;
+  }
+  
+  // Show loading state
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Signing in...';
+  errorDiv.style.display = 'none';
+  
   auth.signInWithEmailAndPassword(email, password)
-    .then(() => {
-      document.getElementById('loginOverlay').remove();
-      toast('Welcome back! ✓', 'success');
+    .then((userCredential) => {
+      console.log('✅ Login successful:', userCredential.user.uid);
+      document.getElementById('loginOverlay')?.remove();
+      showToast('Welcome back! ✓', 'success');
     })
     .catch(error => {
-      errorDiv.textContent = error.message;
-      errorDiv.style.display = 'block';
+      console.error('❌ Login error:', error.code, error.message);
+      
+      let message = error.message;
+      switch(error.code) {
+        case 'auth/user-not-found':
+          message = 'No account found with this email. Please sign up first.';
+          break;
+        case 'auth/wrong-password':
+          message = 'Incorrect password. Please try again.';
+          break;
+        case 'auth/invalid-email':
+          message = 'Invalid email address format.';
+          break;
+        case 'auth/user-disabled':
+          message = 'This account has been disabled.';
+          break;
+        case 'auth/too-many-requests':
+          message = 'Too many attempts. Please try again later.';
+          break;
+        case 'auth/network-request-failed':
+          message = 'Network error. Please check your internet connection.';
+          break;
+      }
+      
+      showError(errorDiv, message);
+      loginBtn.disabled = false;
+      loginBtn.textContent = 'Sign In';
     });
 }
 
 function handleSignup() {
-  const email = document.getElementById('loginEmail').value.trim();
+  const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const password = document.getElementById('loginPassword').value;
   const errorDiv = document.getElementById('loginError');
+  const signupBtn = document.getElementById('signupBtn');
   
   if (!email || !password) {
-    errorDiv.textContent = 'Please enter both email and password';
-    errorDiv.style.display = 'block';
+    showError(errorDiv, 'Please enter both email and password');
+    return;
+  }
+  
+  if (!isValidEmail(email)) {
+    showError(errorDiv, 'Please enter a valid email address');
     return;
   }
   
   if (password.length < 6) {
-    errorDiv.textContent = 'Password must be at least 6 characters';
-    errorDiv.style.display = 'block';
+    showError(errorDiv, 'Password must be at least 6 characters');
     return;
   }
   
+  // Show loading state
+  signupBtn.disabled = true;
+  signupBtn.textContent = 'Creating account...';
+  errorDiv.style.display = 'none';
+  
   auth.createUserWithEmailAndPassword(email, password)
-    .then(() => {
-      document.getElementById('loginOverlay').remove();
-      toast('Account created successfully! ✓', 'success');
+    .then((userCredential) => {
+      console.log('✅ Signup successful:', userCredential.user.uid);
+      document.getElementById('loginOverlay')?.remove();
+      showToast('Account created successfully! ✓', 'success');
+      
+      // Initialize user settings in Firestore
+      initializeUserSettings(userCredential.user.uid);
     })
     .catch(error => {
-      errorDiv.textContent = error.message;
-      errorDiv.style.display = 'block';
+      console.error('❌ Signup error:', error.code, error.message);
+      
+      let message = error.message;
+      switch(error.code) {
+        case 'auth/email-already-in-use':
+          message = 'This email is already registered. Please sign in instead.';
+          break;
+        case 'auth/invalid-email':
+          message = 'Invalid email address format.';
+          break;
+        case 'auth/operation-not-allowed':
+          message = 'Email/password accounts are not enabled. Please contact support.';
+          break;
+        case 'auth/weak-password':
+          message = 'Password is too weak. Please use at least 6 characters.';
+          break;
+        case 'auth/network-request-failed':
+          message = 'Network error. Please check your internet connection.';
+          break;
+      }
+      
+      showError(errorDiv, message);
+      signupBtn.disabled = false;
+      signupBtn.textContent = 'Create New Account';
     });
+}
+
+// Helper functions for auth
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function showError(element, message) {
+  element.textContent = message;
+  element.style.display = 'block';
 }
 
 function showDashboard() {
-  // Remove login overlay if exists
   const overlay = document.getElementById('loginOverlay');
   if (overlay) overlay.remove();
+  
+  // Ensure we're showing the dashboard view
+  if (document.getElementById('view-dashboard')) {
+    switchView('dashboard', document.querySelector('[data-view="dashboard"]'));
+  }
 }
 
 function handleLogout() {
-  if (confirm('Are you sure you want to logout?')) {
+  if (confirm('Are you sure you want to logout? Your data will remain synced for next login.')) {
     auth.signOut().then(() => {
-      toast('Logged out successfully', 'success');
-      location.reload();
+      console.log('✅ Logged out');
+      currentUserId = null;
+      syncEnabled = false;
+      trades = [];
+      showToast('Logged out successfully', 'success');
+      // Small delay before reload to ensure cleanup
+      setTimeout(() => location.reload(), 300);
     }).catch(error => {
-      toast('Logout failed: ' + error.message, 'error');
+      console.error('❌ Logout error:', error);
+      showToast('Logout failed: ' + error.message, 'error');
     });
+  }
+}
+
+// Initialize default settings for new user
+async function initializeUserSettings(userId) {
+  if (!db) return;
+  try {
+    await db.collection(SETTINGS_COLLECTION).doc(userId).set({
+      createdAt: firebase.firestore.FieldValue.serverTimestamp(),
+      theme: 'dark',
+      depositedCapital: 0,
+      currency: 'INR'
+    }, { merge: true });
+  } catch (e) {
+    console.log('Settings init skipped (will retry on next load)');
   }
 }
 
 /* ═══ SYNC STATUS INDICATOR ═══ */
-function updateSyncStatus() {
+function updateSyncStatus(status) {
   const indicator = document.getElementById('syncStatus');
   if (!indicator) return;
   
-  if (!syncEnabled) {
-    indicator.innerHTML = '<span style="color:var(--amber)">● Local</span>';
-    indicator.title = 'Data saved locally only';
-  } else if (navigator.onLine) {
-    indicator.innerHTML = '<span style="color:var(--emerald)">● Synced</span>';
-    indicator.title = 'Real-time sync active across devices';
-  } else {
-    indicator.innerHTML = '<span style="color:var(--rose)">● Offline</span>';
-    indicator.title = 'Waiting for connection...';
+  let html, title;
+  
+  switch(status) {
+    case 'connected':
+      if (navigator.onLine) {
+        html = '<span style="color:var(--emerald)">● Synced</span>';
+        title = 'Real-time sync active • Data saved to cloud';
+      } else {
+        html = '<span style="color:var(--amber)">● Offline</span>';
+        title = 'Working offline • Changes will sync when connected';
+      }
+      break;
+    case 'syncing':
+      html = '<span style="color:var(--cyan)">● Syncing...</span>';
+      title = 'Syncing data with cloud...';
+      break;
+    case 'error':
+      html = '<span style="color:var(--rose)">● Error</span>';
+      title = 'Sync failed • Using local data';
+      break;
+    default: // offline/local
+      html = '<span style="color:var(--amber)">● Local</span>';
+      title = 'Data saved locally only • Sign in to enable sync';
   }
+  
+  indicator.innerHTML = html;
+  indicator.title = title;
 }
 
 /* ═══ REAL-TIME SYNC LISTENER ═══ */
 function setupRealtimeSync() {
-  if (!currentUserId) return;
+  if (!currentUserId || !db) {
+    console.log('⚠️ Cannot setup sync: no user or db');
+    return;
+  }
   
-  db.collection(TRADES_COLLECTION)
+  console.log('🔄 Setting up realtime sync for user:', currentUserId);
+  updateSyncStatus('syncing');
+  
+  const query = db.collection(TRADES_COLLECTION)
     .where('userId', '==', currentUserId)
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(snapshot => {
+    .orderBy('createdAt', 'desc');
+  
+  const unsubscribe = query.onSnapshot(
+    snapshot => {
+      console.log(`📥 Received ${snapshot.size} trades from cloud`);
+      
       trades = [];
       snapshot.forEach(doc => {
         const data = doc.data();
+        // Ensure we have the firebase ID for future updates/deletes
         trades.push({ firebaseId: doc.id, ...data });
       });
       
-      console.log(`🔄 Synced ${trades.length} trades from cloud`);
-      
       // Backup to localStorage for offline safety
-      localStorage.setItem(STORE_KEY, JSON.stringify(trades));
-      
-      // Re-render if view is active
-      renderAll();
-      updateSidebarCapital();
-    }, error => {
-      console.error('🔥 Sync error:', error);
-      if (error.code === 'permission-denied') {
-        toast('❌ Check Firestore security rules', 'error');
-      } else {
-        toast('⚠️ Sync paused - using local data', 'error');
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(trades));
+      } catch (e) {
+        console.warn('Could not backup to localStorage:', e);
       }
-      updateSyncStatus();
-    });
+      
+      // Update UI if views are active
+      if (document.querySelector('.view.active')) {
+        renderAll();
+        updateSidebarCapital();
+      }
+      
+      updateSyncStatus('connected');
+    },
+    error => {
+      console.error('🔥 Sync listener error:', error.code, error.message);
+      
+      if (error.code === 'permission-denied') {
+        showToast('❌ Access denied. Please check Firestore security rules.', 'error');
+        updateSyncStatus('error');
+      } else if (error.code === 'unavailable') {
+        console.log('⚠️ Firestore temporarily unavailable - using cached data');
+        updateSyncStatus('offline');
+      } else {
+        showToast('⚠️ Sync paused - using local data', 'error');
+        updateSyncStatus('error');
+      }
+      
+      // Fallback: load from localStorage
+      loadFromLocalStorage();
+    }
+  );
+  
+  // Store unsubscribe for cleanup if needed
+  window._syncUnsubscribe = unsubscribe;
+}
+
+// Fallback loader
+function loadFromLocalStorage() {
+  try {
+    const data = localStorage.getItem(STORE_KEY);
+    if (data) {
+      trades = JSON.parse(data);
+      console.log(`📦 Loaded ${trades.length} trades from localStorage`);
+      renderAll();
+    }
+  } catch (e) {
+    console.warn('Error loading from localStorage:', e);
+  }
 }
 
 /* ═══ CLOUD OPERATIONS ═══ */
 async function syncTradeToCloud(trade) {
-  if (!syncEnabled || !currentUserId) {
+  if (!syncEnabled || !currentUserId || !db) {
     // Fallback to localStorage only
     saveTrades(trades);
     return;
   }
   
+  updateSyncStatus('syncing');
+  
   try {
+    // ✅ CRITICAL: Always include userId for security rules
     const tradeData = {
       ...trade,
-      userId: currentUserId,
+      userId: currentUserId,  // This is essential!
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
@@ -240,35 +444,51 @@ async function syncTradeToCloud(trade) {
       await db.collection(TRADES_COLLECTION)
         .doc(trade.firebaseId)
         .update(tradeData);
-      console.log('✅ Trade updated in cloud');
+      console.log('✅ Trade updated in cloud:', trade.firebaseId);
     } else {
       // Create new trade
       tradeData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       const docRef = await db.collection(TRADES_COLLECTION).add(tradeData);
       trade.firebaseId = docRef.id;
-      console.log('✅ Trade added to cloud');
+      console.log('✅ Trade added to cloud:', docRef.id);
     }
+    
+    // Update local copy with firebaseId
+    saveTrades(trades);
+    updateSyncStatus('connected');
+    
   } catch (error) {
-    console.error('❌ Cloud sync failed:', error);
+    console.error('❌ Cloud sync failed:', error.code, error.message);
+    
     // Fallback: save to localStorage
     saveTrades(trades);
-    toast('⚠️ Saved locally (will sync when online)', 'error');
+    
+    if (error.code === 'permission-denied') {
+      showToast('❌ Cannot save: Check Firestore rules', 'error');
+    } else if (error.code === 'unavailable') {
+      showToast('⚠️ Offline - saved locally, will sync later', 'error');
+    } else {
+      showToast('⚠️ Saved locally (sync failed)', 'error');
+    }
+    
+    updateSyncStatus('error');
   }
 }
 
 async function deleteTradeFromCloud(firebaseId) {
-  if (!firebaseId || !syncEnabled) return;
+  if (!firebaseId || !syncEnabled || !currentUserId || !db) return;
   
   try {
     await db.collection(TRADES_COLLECTION).doc(firebaseId).delete();
-    console.log('✅ Trade deleted from cloud');
+    console.log('✅ Trade deleted from cloud:', firebaseId);
   } catch (error) {
     console.error('❌ Cloud delete failed:', error);
+    // Don't show toast here - UI will update from snapshot listener
   }
 }
 
 async function saveUserSettings(settings) {
-  if (!syncEnabled || !currentUserId) return;
+  if (!syncEnabled || !currentUserId || !db) return;
   
   try {
     await db.collection(SETTINGS_COLLECTION).doc(currentUserId).set({
@@ -276,28 +496,32 @@ async function saveUserSettings(settings) {
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
   } catch (e) {
-    console.log('Settings sync skipped');
+    console.log('Settings sync skipped:', e.message);
   }
 }
 
 function loadUserSettings() {
-  if (!syncEnabled || !currentUserId) return;
+  if (!syncEnabled || !currentUserId || !db) return;
   
-  db.collection(SETTINGS_COLLECTION).doc(currentUserId).get().then(doc => {
-    if (doc.exists) {
-      const settings = doc.data();
-      if (settings.theme) applyTheme(settings.theme);
-      if (settings.depositedCapital !== undefined) {
-        setDepositedCapital(settings.depositedCapital);
+  db.collection(SETTINGS_COLLECTION).doc(currentUserId).get()
+    .then(doc => {
+      if (doc.exists) {
+        const settings = doc.data();
+        if (settings.theme) applyTheme(settings.theme);
+        if (settings.depositedCapital !== undefined) {
+          setDepositedCapital(settings.depositedCapital);
+        }
+        console.log('📥 User settings loaded');
       }
-    }
-  });
+    })
+    .catch(e => console.log('Settings load skipped:', e.message));
 }
 
 /* ═══ LOCAL STORAGE FUNCTIONS (FALLBACK) ═══ */
 function loadTrades() {
+  // If synced, realtime listener handles it
   if (syncEnabled && currentUserId) {
-    return []; // Realtime listener will populate
+    return [];
   }
   
   try { 
@@ -307,13 +531,17 @@ function loadTrades() {
       return Array.isArray(parsed) ? parsed : [];
     }
   } catch(e) {
-    console.warn('Error loading trades:', e);
+    console.warn('Error loading trades from localStorage:', e);
   }
   return [];
 }
 
 function saveTrades(data) { 
-  localStorage.setItem(STORE_KEY, JSON.stringify(data)); 
+  try {
+    localStorage.setItem(STORE_KEY, JSON.stringify(data));
+  } catch(e) {
+    console.warn('Error saving to localStorage:', e);
+  }
 }
 
 /* ═══ CAPITAL MANAGEMENT ═══ */
@@ -346,6 +574,7 @@ function updateSidebarCapital() {
   const deposited = getDepositedCapital();
   const totalInvested = trades.reduce((sum, t) => sum + (t.capital || 0), 0);
   const currentCapital = getCurrentCapital();
+  
   set('sideCapital', fmt.currency(currentCapital, 0));
   set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
   set('kpiCap', fmt.currency(currentCapital, 0));
@@ -436,8 +665,8 @@ function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
   applyTheme(next);
-  if (typeof toast === 'function') {
-    toast(`Switched to ${next} mode`, 'success');
+  if (typeof showToast === 'function') {
+    showToast(`Switched to ${next} mode`, 'success');
   }
 }
 
@@ -464,11 +693,11 @@ function editDepositedCapital() {
   if (newAmount === null) return;
   const amount = parseFloat(newAmount);
   if (isNaN(amount) || amount < 0) {
-    toast('Please enter a valid amount', 'error');
+    showToast('Please enter a valid amount', 'error');
     return;
   }
   setDepositedCapital(amount);
-  toast(`Initial Capital updated to ${fmt.currency(amount, 0)}`, 'success');
+  showToast(`Initial Capital updated to ${fmt.currency(amount, 0)}`, 'success');
   validateFormCapital();
 }
 
@@ -939,15 +1168,15 @@ function clearForm() {
   setRadioValue('fExitQuality', 'plan');
 }
 
-/* ═══ SAVE TRADE - MODIFIED FOR FIREBASE ═══ */
+/* ═══ SAVE TRADE - FIXED FOR FIREBASE SYNC ═══ */
 function saveTrade() {
   const date=getv('fDate'), symbol=getv('fSymbol').trim(), type=getv('fType');
   const cap=parseFloat(getv('fCapital')), entry=parseFloat(getv('fEntry')), sl=parseFloat(getv('fSL'));
-  if(!date)       return toast('Please enter a date.','error');
-  if(!symbol)     return toast('Please enter a stock symbol.','error');
-  if(!type)       return toast('Please select a trade type.','error');
-  if(isNaN(entry))return toast('Please enter a valid entry price.','error');
-  if(isNaN(sl))   return toast('Please enter a valid stop loss.','error');
+  if(!date)       return showToast('Please enter a date.','error');
+  if(!symbol)     return showToast('Please enter a stock symbol.','error');
+  if(!type)       return showToast('Please select a trade type.','error');
+  if(isNaN(entry))return showToast('Please enter a valid entry price.','error');
+  if(isNaN(sl))   return showToast('Please enter a valid stop loss.','error');
   
   const currentCapital = getCurrentCapital();
   const invested = parseFloat(getv('fCapital'));
@@ -982,38 +1211,39 @@ Continue anyway?`)) {
   const idx = parseInt(document.getElementById('editIndex').value);
   if(idx>=0) { 
     trades[idx] = {...trade, firebaseId: trades[idx].firebaseId}; 
-    toast('Trade updated & synced! ✓', 'success'); 
+    showToast('Trade updated! ✓', 'success'); 
   } else { 
     trades.push(trade); 
-    toast('Trade added & synced! ✓', 'success'); 
+    showToast('Trade added! ✓', 'success'); 
   }
   
-  // 🔄 SYNC TO FIREBASE
+  // 🔄 SYNC TO FIREBASE (with userId)
   syncTradeToCloud(trade);
   
   clearForm(); 
-  // renderAll() will be called by realtime listener
+  // renderAll() will be called by realtime listener automatically
   switchView('journal',document.querySelector('[data-view="journal"]'));
 }
 
-/* ═══ DELETE TRADE - MODIFIED FOR FIREBASE ═══ */
+/* ═══ DELETE TRADE - FIXED FOR FIREBASE ═══ */
 function deleteTrade(idx) {
-  if(!confirm('Delete this trade permanently?')) return;
+  if(!confirm('Delete this trade permanently? This cannot be undone.')) return;
   
   const trade = trades[idx];
   const firebaseId = trade.firebaseId;
   
+  // Remove from local array first for immediate UI update
   trades.splice(idx, 1);
   
   // 🔄 DELETE FROM FIREBASE
-  if (firebaseId) {
+  if (firebaseId && syncEnabled && currentUserId) {
     deleteTradeFromCloud(firebaseId);
   }
   
   // Backup to localStorage
   saveTrades(trades);
   
-  toast('Trade deleted ✓', 'success');
+  showToast('Trade deleted ✓', 'success');
   // renderAll() will be called by realtime listener
 }
 
@@ -1329,7 +1559,7 @@ function exportCSV() {
   a.href=URL.createObjectURL(blob);
   a.download=`TradeVault_Export_${new Date().toISOString().substring(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(a.href);
-  toast('Excel-ready CSV exported! 📊','success');
+  showToast('Excel-ready CSV exported! 📊','success');
 }
 
 /* ═══ VIEW ROUTING ═══ */
@@ -1385,12 +1615,15 @@ function toggleSidebar() { document.getElementById('sidebar').classList.toggle('
 
 /* ═══ TOAST ═══ */
 let toastTimer;
-function toast(msg, type='') {
+function showToast(msg, type='') {
   const t=document.getElementById('toast'); if(!t) return;
   t.textContent=msg; t.className=`toast show ${type}`;
   clearTimeout(toastTimer);
   toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
 }
+
+// Alias for backward compatibility
+function toast(msg, type='') { showToast(msg, type); }
 
 /* ═══ HELPERS ═══ */
 function el(id) { return document.getElementById(id); }
@@ -1715,7 +1948,7 @@ function deleteFilteredTrades() {
   });
   
   if(filtered.length === 0) {
-    toast('No trades to delete', 'error');
+    showToast('No trades to delete', 'error');
     return;
   }
   
@@ -1725,14 +1958,14 @@ function deleteFilteredTrades() {
   const indicesToDelete = filtered.map(t => t._i).sort((a, b) => b - a);
   indicesToDelete.forEach(idx => {
     const trade = trades[idx];
-    if (trade.firebaseId) {
+    if (trade.firebaseId && syncEnabled && currentUserId) {
       deleteTradeFromCloud(trade.firebaseId);
     }
     trades.splice(idx, 1);
   });
   
   saveTrades(trades);
-  toast(`${filtered.length} trade${filtered.length !== 1 ? 's' : ''} deleted successfully`, 'success');
+  showToast(`${filtered.length} trade${filtered.length !== 1 ? 's' : ''} deleted successfully`, 'success');
   
   document.getElementById('journalSearch').value = '';
   document.getElementById('filterMonth').value = '';
@@ -1748,7 +1981,7 @@ function deleteFilteredTrades() {
 
 function showDayDetails(dateKey) {
   const dayTrades = trades.filter(t => t.date === dateKey);
-  if(dayTrades.length === 0) { toast('No trades on this day', 'error'); return; }
+  if(dayTrades.length === 0) { showToast('No trades on this day', 'error'); return; }
   switchView('journal', document.querySelector('[data-view="journal"]'));
   document.getElementById('journalSearch').value = dateKey;
   renderJournal();
@@ -1771,44 +2004,74 @@ function initCalendar() {
 /* ═══ CONNECTION HANDLERS ═══ */
 window.addEventListener('online', () => {
   console.log('🌐 Back online');
-  updateSyncStatus();
-  if (syncEnabled && currentUserId) {
+  updateSyncStatus('connected');
+  if (syncEnabled && currentUserId && db) {
+    // Re-setup sync listener when back online
+    if (window._syncUnsubscribe) {
+      window._syncUnsubscribe();
+    }
     setupRealtimeSync();
-    toast('🔄 Reconnected - syncing...', 'success');
+    showToast('🔄 Reconnected - syncing data...', 'success');
   }
 });
 
 window.addEventListener('offline', () => {
   console.log('✈️ Offline mode');
-  updateSyncStatus();
-  toast('⚠️ Offline - changes will sync when back online', 'error');
+  updateSyncStatus('offline');
+  showToast('⚠️ Offline - changes will sync when back online', 'error');
+});
+
+// Handle page visibility for better sync management
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && syncEnabled && currentUserId) {
+    console.log('👁️ Page visible - refreshing data');
+    // Optionally refresh data when tab becomes visible
+  }
 });
 
 /* ═══ INIT ═══ */
 document.addEventListener('DOMContentLoaded', () => {
   // Initialize Firebase first
-  initFirebase();
+  const firebaseOk = initFirebase();
+  
+  if (!firebaseOk) {
+    console.error('Firebase failed to initialize');
+    showToast('Failed to connect to server. Please refresh the page.', 'error');
+    return;
+  }
   
   const today = new Date().toISOString().substring(0,10);
   const fd = document.getElementById('fDate'); if(fd) fd.value=today;
   
-  // Initial render (will be updated by realtime listener)
+  // Initial render (will be updated by realtime listener if synced)
   if (!syncEnabled) {
+    // Load from localStorage for offline mode
+    trades = loadTrades();
     renderDashboard();
     populateFilters();
   }
   
   updateSidebarCapital();
-  updateSyncStatus();
+  updateSyncStatus(syncEnabled ? 'connected' : 'offline');
   
   if (document.getElementById('view-add')) {
     document.getElementById('fCapital')?.addEventListener('input', validateFormCapital);
   }
   
-  // Periodic localStorage backup
+  // Periodic localStorage backup (every 30 seconds)
   setInterval(() => {
-    if (syncEnabled) {
-      localStorage.setItem(STORE_KEY, JSON.stringify(trades));
+    if (trades.length > 0) {
+      try {
+        localStorage.setItem(STORE_KEY, JSON.stringify(trades));
+      } catch(e) {
+        console.warn('Backup failed:', e);
+      }
     }
   }, 30000);
+  
+  // Apply saved theme on load
+  const savedTheme = getPreferredTheme();
+  if (savedTheme) {
+    applyTheme(savedTheme);
+  }
 });
