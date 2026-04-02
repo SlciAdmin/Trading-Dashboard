@@ -1,6 +1,6 @@
 'use strict';
 
-/* ═══ FIREBASE CONFIG - YOUR VALUES ═══ */
+/* ═══ FIREBASE CONFIG ═══ */
 const firebaseConfig = {
   apiKey: "AIzaSyBBixvE5SQjOePUrvNLTsBEcQAChU9dvLQ",
   authDomain: "tradevault-pro-7421d.firebaseapp.com",
@@ -25,12 +25,11 @@ const SETTINGS_COLLECTION = 'user_settings';
 function initFirebase() {
   if (typeof firebase === 'undefined') {
     console.error('❌ Firebase SDK not loaded!');
-    showToast('Firebase not loaded. Please check your internet connection.', 'error');
+    showToast('Firebase not loaded. Check internet connection.', 'error');
     return false;
   }
   
   try {
-    // Initialize Firebase app
     if (!firebase.apps.length) {
       firebase.initializeApp(firebaseConfig);
     }
@@ -38,50 +37,36 @@ function initFirebase() {
     db = firebase.firestore();
     auth = firebase.auth();
     
-    // ✅ FIXED: Use memory cache + enable multi-tab synchronization
+    // ✅ FIXED: Removed invalid 'merge' from settings
     db.settings({
       cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
-      experimentalForceLongPolling: true,
-      merge: true // Prevent host override warning
+      experimentalForceLongPolling: true
     });
     
     // Enable persistence with multi-tab support
     db.enablePersistence({ synchronizeTabs: true })
-      .then(() => {
-        console.log('✅ IndexedDB persistence enabled with multi-tab sync');
-      })
       .catch(err => {
         if (err.code === 'failed-precondition') {
-          console.log('⚠️ Multiple tabs - using memory cache (this is normal)');
+          console.log('ℹ️ Multiple tabs - using memory cache');
         } else if (err.code === 'unimplemented') {
-          console.log('⚠️ Browser doesn\'t support persistence - using memory cache');
-        } else {
-          console.log('Persistence error (falling back to memory):', err.message);
+          console.log('ℹ️ Browser doesn\'t support persistence');
         }
-        // App continues to work with memory cache
       });
     
-    // Enable auth persistence (keeps user logged in across sessions)
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
-      .catch(err => {
-        console.log('Auth persistence warning:', err.message);
-      });
+    // Enable auth persistence
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
     
-    // Listen for auth state changes
+    // Auth state listener
     auth.onAuthStateChanged(user => {
       if (user) {
         currentUserId = user.uid;
-        console.log('👤 User authenticated:', currentUserId);
+        console.log('✅ User authenticated:', currentUserId);
         syncEnabled = true;
         updateSyncStatus('connected');
         updateUserDisplay(user.email);
         
-        // Load user settings first
         loadUserSettings().then(() => {
-          // Then setup realtime sync for trades
           setupRealtimeSync();
-          
-          // Show dashboard after sync starts
           setTimeout(() => {
             showDashboard();
             renderAll();
@@ -100,14 +85,13 @@ function initFirebase() {
     return true;
   } catch (e) {
     console.error('Firebase init error:', e);
-    showToast('Failed to connect to server. Please refresh the page.', 'error');
+    showToast('Failed to connect. Refresh page.', 'error');
     return false;
   }
 }
 
-/* ═══ AUTHENTICATION FUNCTIONS ═══ */
+/* ═══ AUTHENTICATION ═══ */
 function showLoginScreen() {
-  // Remove existing login overlay if any
   const existing = document.getElementById('loginOverlay');
   if (existing) existing.remove();
   
@@ -119,10 +103,9 @@ function showLoginScreen() {
             <svg viewBox="0 0 24 24" style="width:32px;height:32px;fill:none;stroke:#fff;stroke-width:2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
           </div>
           <h2 style="font-family:'Outfit',sans-serif;font-size:24px;margin-bottom:8px;color:var(--text);">TradeVault</h2>
-          <p style="color:var(--text3);font-size:13px;">Sign in to sync your trading journal across devices</p>
+          <p style="color:var(--text3);font-size:13px;">Sign in to sync across devices</p>
         </div>
         
-        <!-- Tab Switcher -->
         <div style="display:flex;margin-bottom:20px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
           <button id="tabLogin" onclick="switchAuthTab('login')" style="flex:1;padding:10px;background:var(--cyan);color:#07080C;font-weight:600;font-size:12px;border:none;cursor:pointer;">Sign In</button>
           <button id="tabSignup" onclick="switchAuthTab('signup')" style="flex:1;padding:10px;background:transparent;color:var(--text2);font-weight:600;font-size:12px;border:none;cursor:pointer;">Create Account</button>
@@ -132,35 +115,29 @@ function showLoginScreen() {
           <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Email Address</label>
           <input type="email" id="loginEmail" placeholder="your@email.com" style="width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:16px;outline:none;" />
           
-          <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Password <span style="color:var(--text3);font-weight:normal">(min 6 characters)</span></label>
+          <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Password</label>
           <input type="password" id="loginPassword" placeholder="••••••••" style="width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:8px;outline:none;" />
           
-          <div id="loginError" class="auth-error"></div>
-          <div id="loginSuccess" class="auth-success" style="display:none;"></div>
+          <div id="loginError" style="color:var(--rose);font-size:11px;margin:8px 0;padding:8px;background:rgba(255,77,109,0.1);border-radius:6px;border:1px solid rgba(255,77,109,0.2);display:none;"></div>
+          <div id="loginSuccess" style="color:var(--emerald);font-size:11px;margin:8px 0;display:none;"></div>
         </div>
         
         <button id="authBtn" onclick="handleAuth()" style="width:100%;padding:12px;background:var(--cyan);border:none;border-radius:8px;color:#07080C;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;transition:all 0.2s;">Sign In</button>
         
         <div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
-          <p style="font-size:11px;color:var(--text3);">🔐 Your data is encrypted & synced securely</p>
-          <p style="font-size:10px;color:var(--text3);margin-top:8px;">By continuing, you agree to our Terms & Privacy Policy</p>
+          <p style="font-size:11px;color:var(--text3);">🔐 Your data is encrypted & synced</p>
         </div>
       </div>
     </div>
   `;
   
   document.body.insertAdjacentHTML('beforeend', loginHTML);
-  
-  // Add enter key support
   document.getElementById('loginPassword').addEventListener('keypress', (e) => {
     if (e.key === 'Enter') handleAuth();
   });
-  
-  // Initialize with login tab
   switchAuthTab('login');
 }
 
-// Switch between Login/Signup tabs
 function switchAuthTab(tab) {
   const loginTab = document.getElementById('tabLogin');
   const signupTab = document.getElementById('tabSignup');
@@ -168,8 +145,8 @@ function switchAuthTab(tab) {
   const errorDiv = document.getElementById('loginError');
   const successDiv = document.getElementById('loginSuccess');
   
-  if (errorDiv) errorDiv.style.display = 'none';
-  if (successDiv) successDiv.style.display = 'none';
+  if (errorDiv) { errorDiv.style.display = 'none'; errorDiv.textContent = ''; }
+  if (successDiv) { successDiv.style.display = 'none'; successDiv.textContent = ''; }
   
   if (tab === 'login') {
     loginTab.style.background = 'var(--cyan)';
@@ -189,7 +166,6 @@ function switchAuthTab(tab) {
 }
 
 function handleAuth() {
-  // Wrapper that calls correct function based on tab
   const authBtn = document.getElementById('authBtn');
   if (authBtn.textContent.includes('Sign In')) {
     handleLogin();
@@ -205,24 +181,21 @@ function handleLogin() {
   const successDiv = document.getElementById('loginSuccess');
   const authBtn = document.getElementById('authBtn');
   
-  // Reset messages
   if (errorDiv) { errorDiv.style.display = 'none'; errorDiv.textContent = ''; }
   if (successDiv) { successDiv.style.display = 'none'; successDiv.textContent = ''; }
   
-  // Validation
   if (!email || !password) {
-    showError(errorDiv, 'Please enter both email and password');
+    showError(errorDiv, 'Please enter email and password');
     return;
   }
   
   if (!isValidEmail(email)) {
-    showError(errorDiv, 'Please enter a valid email address');
+    showError(errorDiv, 'Please enter valid email');
     return;
   }
   
-  // Show loading state
   authBtn.disabled = true;
-  authBtn.classList.add('auth-loading');
+  authBtn.style.opacity = '0.7';
   authBtn.textContent = 'Signing in...';
   
   auth.signInWithEmailAndPassword(email, password)
@@ -232,7 +205,6 @@ function handleLogin() {
         successDiv.textContent = 'Login successful! Redirecting...';
         successDiv.style.display = 'block';
       }
-      // Remove overlay after small delay
       setTimeout(() => {
         document.getElementById('loginOverlay')?.remove();
         showToast('Welcome back! ✓', 'success');
@@ -244,33 +216,27 @@ function handleLogin() {
       let message = 'Login failed. Please try again.';
       switch(error.code) {
         case 'auth/user-not-found':
-          message = 'No account found with this email. Please sign up first.';
+          message = 'No account found. Please sign up first.';
           break;
         case 'auth/wrong-password':
-          message = 'Incorrect password. Please try again or reset password.';
+          message = 'Incorrect password.';
           break;
         case 'auth/invalid-email':
-          message = 'Invalid email address format.';
-          break;
-        case 'auth/user-disabled':
-          message = 'This account has been disabled. Contact support.';
-          break;
-        case 'auth/too-many-requests':
-          message = 'Too many attempts. Please wait a few minutes and try again.';
-          break;
-        case 'auth/network-request-failed':
-          message = 'Network error. Please check your internet connection.';
+          message = 'Invalid email format.';
           break;
         case 'auth/invalid-credential':
-          message = 'Invalid credentials. Please check your email and password.';
+          message = 'Invalid credentials. Check email/password.';
+          break;
+        case 'auth/network-request-failed':
+          message = 'Network error. Check internet.';
           break;
         default:
-          message = error.message || 'Authentication failed. Please try again.';
+          message = error.message;
       }
       
       showError(errorDiv, message);
       authBtn.disabled = false;
-      authBtn.classList.remove('auth-loading');
+      authBtn.style.opacity = '1';
       authBtn.textContent = 'Sign In';
     });
 }
@@ -282,83 +248,72 @@ function handleSignup() {
   const successDiv = document.getElementById('loginSuccess');
   const authBtn = document.getElementById('authBtn');
   
-  // Reset messages
   if (errorDiv) { errorDiv.style.display = 'none'; errorDiv.textContent = ''; }
   if (successDiv) { successDiv.style.display = 'none'; successDiv.textContent = ''; }
   
-  // Validation
   if (!email || !password) {
-    showError(errorDiv, 'Please enter both email and password');
+    showError(errorDiv, 'Please enter email and password');
     return;
   }
   
   if (!isValidEmail(email)) {
-    showError(errorDiv, 'Please enter a valid email address');
+    showError(errorDiv, 'Please enter valid email');
     return;
   }
   
   if (password.length < 6) {
-    showError(errorDiv, 'Password must be at least 6 characters');
+    showError(errorDiv, 'Password must be 6+ characters');
     return;
   }
   
-  // Show loading state
   authBtn.disabled = true;
-  authBtn.classList.add('auth-loading');
+  authBtn.style.opacity = '0.7';
   authBtn.textContent = 'Creating account...';
   
   auth.createUserWithEmailAndPassword(email, password)
     .then((userCredential) => {
       console.log('✅ Signup successful:', userCredential.user.uid);
       if (successDiv) {
-        successDiv.textContent = 'Account created! Setting up your journal...';
+        successDiv.textContent = 'Account created! Setting up...';
         successDiv.style.display = 'block';
       }
-      
-      // Initialize user settings in Firestore
       return initializeUserSettings(userCredential.user.uid);
     })
     .then(() => {
-      // Small delay then remove overlay
       setTimeout(() => {
         document.getElementById('loginOverlay')?.remove();
-        showToast('Account created successfully! ✓', 'success');
+        showToast('Account created! ✓', 'success');
       }, 800);
     })
     .catch(error => {
       console.error('❌ Signup error:', error.code, error.message);
       
-      let message = 'Signup failed. Please try again.';
+      let message = 'Signup failed.';
       switch(error.code) {
         case 'auth/email-already-in-use':
-          message = 'This email is already registered. Please sign in instead.';
-          // Auto-switch to login tab
+          message = 'Email already registered. Please sign in.';
           setTimeout(() => switchAuthTab('login'), 1500);
           break;
         case 'auth/invalid-email':
-          message = 'Invalid email address format.';
-          break;
-        case 'auth/operation-not-allowed':
-          message = 'Email/password sign-up is not enabled. Contact support.';
+          message = 'Invalid email format.';
           break;
         case 'auth/weak-password':
-          message = 'Password is too weak. Please use at least 6 characters with mix of letters and numbers.';
+          message = 'Password too weak. Use 6+ characters.';
           break;
         case 'auth/network-request-failed':
-          message = 'Network error. Please check your internet connection.';
+          message = 'Network error. Check internet.';
           break;
         default:
-          message = error.message || 'Signup failed. Please try again.';
+          message = error.message;
       }
       
       showError(errorDiv, message);
       authBtn.disabled = false;
-      authBtn.classList.remove('auth-loading');
+      authBtn.style.opacity = '1';
       authBtn.textContent = 'Create Account';
     });
 }
 
-// Helper functions for auth
 function isValidEmail(email) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 }
@@ -372,8 +327,6 @@ function showError(element, message) {
 function showDashboard() {
   const overlay = document.getElementById('loginOverlay');
   if (overlay) overlay.remove();
-  
-  // Ensure we're showing the dashboard view
   if (document.getElementById('view-dashboard')) {
     switchView('dashboard', document.querySelector('[data-view="dashboard"]'));
   }
@@ -382,7 +335,6 @@ function showDashboard() {
 function updateUserDisplay(email) {
   const userInfo = document.getElementById('userInfo');
   if (!userInfo) return;
-  
   if (email && syncEnabled) {
     userInfo.style.display = 'block';
     userInfo.textContent = email.split('@')[0];
@@ -393,30 +345,26 @@ function updateUserDisplay(email) {
 }
 
 function handleLogout() {
-  if (confirm('Are you sure you want to logout?\n\nYour data will remain safely synced and will be available when you sign in again.')) {
-    // Cleanup sync listener first
+  if (confirm('Are you sure you want to logout?')) {
     if (syncUnsubscribe) {
       syncUnsubscribe();
       syncUnsubscribe = null;
     }
-    
     auth.signOut().then(() => {
       console.log('✅ Logged out');
       currentUserId = null;
       syncEnabled = false;
       trades = [];
       updateUserDisplay(null);
-      showToast('Logged out successfully ✓', 'success');
-      // Reload to show login screen
+      showToast('Logged out ✓', 'success');
       setTimeout(() => location.reload(), 300);
     }).catch(error => {
       console.error('❌ Logout error:', error);
-      showToast('Logout failed: ' + error.message, 'error');
+      showToast('Logout failed', 'error');
     });
   }
 }
 
-// Initialize default settings for new user
 async function initializeUserSettings(userId) {
   if (!db) return;
   try {
@@ -429,55 +377,49 @@ async function initializeUserSettings(userId) {
     }, { merge: true });
     console.log('✅ User settings initialized');
   } catch (e) {
-    console.log('Settings init will retry on next load:', e.message);
+    console.log('Settings init will retry:', e.message);
   }
 }
 
-/* ═══ SYNC STATUS INDICATOR ═══ */
+/* ═══ SYNC STATUS ═══ */
 function updateSyncStatus(status) {
   const indicator = document.getElementById('syncStatus');
   if (!indicator) return;
   
   let html, title;
-  
   switch(status) {
     case 'connected':
-      if (navigator.onLine) {
-        html = '<span style="color:var(--emerald)">● Synced</span>';
-        title = '✓ Real-time sync active • Data saved to cloud';
-      } else {
-        html = '<span style="color:var(--amber)">● Offline</span>';
-        title = 'Working offline • Changes will sync when connected';
-      }
+      html = navigator.onLine ? 
+        '<span style="color:var(--emerald)">● Synced</span>' : 
+        '<span style="color:var(--amber)">● Offline</span>';
+      title = navigator.onLine ? 
+        '✓ Real-time sync active' : 
+        'Working offline';
       break;
     case 'syncing':
       html = '<span style="color:var(--cyan)">● Syncing...</span>';
-      title = 'Syncing data with cloud...';
+      title = 'Syncing...';
       break;
     case 'error':
       html = '<span style="color:var(--rose)">● Error</span>';
-      title = 'Sync failed • Using local data';
+      title = 'Sync failed';
       break;
-    default: // offline/local
+    default:
       html = '<span style="color:var(--amber)">● Local</span>';
-      title = 'Data saved locally • Sign in to enable cloud sync';
+      title = 'Local mode';
   }
   
   indicator.innerHTML = html;
   indicator.title = title;
 }
 
-/* ═══ REAL-TIME SYNC LISTENER ═══ */
+/* ═══ REAL-TIME SYNC ═══ */
 function setupRealtimeSync() {
-  if (!currentUserId || !db) {
-    console.log('⚠️ Cannot setup sync: no user or db');
-    return;
-  }
+  if (!currentUserId || !db) return;
   
-  console.log('🔄 Setting up realtime sync for user:', currentUserId);
+  console.log('🔄 Setting up sync for:', currentUserId);
   updateSyncStatus('syncing');
   
-  // Cleanup existing listener if any
   if (syncUnsubscribe) {
     syncUnsubscribe();
     syncUnsubscribe = null;
@@ -489,23 +431,18 @@ function setupRealtimeSync() {
   
   syncUnsubscribe = query.onSnapshot(
     snapshot => {
-      console.log(`📥 Received ${snapshot.size} trades from cloud`);
-      
+      console.log(`📥 Received ${snapshot.size} trades`);
       trades = [];
       snapshot.forEach(doc => {
-        const data = doc.data();
-        // Ensure we have the firebase ID for future updates/deletes
-        trades.push({ firebaseId: doc.id, ...data });
+        trades.push({ firebaseId: doc.id, ...doc.data() });
       });
       
-      // Backup to localStorage for offline safety
       try {
         localStorage.setItem(STORE_KEY, JSON.stringify(trades));
       } catch (e) {
-        console.warn('Could not backup to localStorage:', e);
+        console.warn('Backup failed:', e);
       }
       
-      // Update UI if views are active
       if (document.querySelector('.view.active')) {
         renderAll();
         updateSidebarCapital();
@@ -514,26 +451,16 @@ function setupRealtimeSync() {
       updateSyncStatus('connected');
     },
     error => {
-      console.error('🔥 Sync listener error:', error.code, error.message);
-      
+      console.error('🔥 Sync error:', error.code, error.message);
       if (error.code === 'permission-denied') {
-        showToast('❌ Access denied. Please check Firestore security rules.', 'error');
-        updateSyncStatus('error');
-      } else if (error.code === 'unavailable') {
-        console.log('⚠️ Firestore temporarily unavailable - using cached data');
-        updateSyncStatus('offline');
-      } else {
-        showToast('⚠️ Sync paused - using local data', 'error');
-        updateSyncStatus('error');
+        showToast('❌ Access denied. Check Firestore rules.', 'error');
       }
-      
-      // Fallback: load from localStorage
+      updateSyncStatus('error');
       loadFromLocalStorage();
     }
   );
 }
 
-// Fallback loader
 function loadFromLocalStorage() {
   try {
     const data = localStorage.getItem(STORE_KEY);
@@ -543,14 +470,13 @@ function loadFromLocalStorage() {
       renderAll();
     }
   } catch (e) {
-    console.warn('Error loading from localStorage:', e);
+    console.warn('localStorage error:', e);
   }
 }
 
 /* ═══ CLOUD OPERATIONS ═══ */
 async function syncTradeToCloud(trade) {
   if (!syncEnabled || !currentUserId || !db) {
-    // Fallback to localStorage only
     saveTrades(trades);
     return;
   }
@@ -558,70 +484,56 @@ async function syncTradeToCloud(trade) {
   updateSyncStatus('syncing');
   
   try {
-    // ✅ CRITICAL: Always include userId for security rules
     const tradeData = {
       ...trade,
-      userId: currentUserId,  // This is essential for security rules!
+      userId: currentUserId,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
     if (trade.firebaseId) {
-      // Update existing trade
       await db.collection(TRADES_COLLECTION)
         .doc(trade.firebaseId)
         .update(tradeData);
-      console.log('✅ Trade updated in cloud:', trade.firebaseId);
+      console.log('✅ Trade updated:', trade.firebaseId);
     } else {
-      // Create new trade
       tradeData.createdAt = firebase.firestore.FieldValue.serverTimestamp();
       const docRef = await db.collection(TRADES_COLLECTION).add(tradeData);
       trade.firebaseId = docRef.id;
-      console.log('✅ Trade added to cloud:', docRef.id);
+      console.log('✅ Trade added:', docRef.id);
     }
     
-    // Update local copy with firebaseId
     saveTrades(trades);
     updateSyncStatus('connected');
-    
   } catch (error) {
-    console.error('❌ Cloud sync failed:', error.code, error.message);
-    
-    // Fallback: save to localStorage
+    console.error('❌ Sync failed:', error.code, error.message);
     saveTrades(trades);
     
     if (error.code === 'permission-denied') {
-      showToast('❌ Cannot save: Check Firestore security rules', 'error');
+      showToast('❌ Cannot save: Check Firestore rules', 'error');
     } else if (error.code === 'unavailable') {
-      showToast('⚠️ Offline - saved locally, will sync when connected', 'error');
-    } else {
-      showToast('⚠️ Saved locally (sync failed)', 'error');
+      showToast('⚠️ Offline - saved locally', 'error');
     }
-    
     updateSyncStatus('error');
   }
 }
 
 async function deleteTradeFromCloud(firebaseId) {
   if (!firebaseId || !syncEnabled || !currentUserId || !db) return;
-  
   try {
     await db.collection(TRADES_COLLECTION).doc(firebaseId).delete();
     console.log('✅ Trade deleted from cloud:', firebaseId);
   } catch (error) {
     console.error('❌ Cloud delete failed:', error);
-    // Don't show toast here - UI will update from snapshot listener
   }
 }
 
 async function saveUserSettings(settings) {
   if (!syncEnabled || !currentUserId || !db) return;
-  
   try {
     await db.collection(SETTINGS_COLLECTION).doc(currentUserId).set({
       ...settings,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
-    console.log('✅ Settings synced to cloud');
   } catch (e) {
     console.log('Settings sync skipped:', e.message);
   }
@@ -629,7 +541,6 @@ async function saveUserSettings(settings) {
 
 async function loadUserSettings() {
   if (!syncEnabled || !currentUserId || !db) return;
-  
   try {
     const doc = await db.collection(SETTINGS_COLLECTION).doc(currentUserId).get();
     if (doc.exists) {
@@ -638,23 +549,18 @@ async function loadUserSettings() {
       if (settings.depositedCapital !== undefined) {
         setDepositedCapital(settings.depositedCapital);
       }
-      console.log('📥 User settings loaded from cloud');
+      console.log('📥 Settings loaded');
     }
   } catch(e) {
-    console.log('Settings load skipped (will use local):', e.message);
-    // Load from localStorage as fallback
+    console.log('Settings load skipped:', e.message);
     const savedTheme = localStorage.getItem('tradevault_theme');
     if (savedTheme) applyTheme(savedTheme);
   }
 }
 
-/* ═══ LOCAL STORAGE FUNCTIONS (FALLBACK) ═══ */
+/* ═══ LOCAL STORAGE ═══ */
 function loadTrades() {
-  // If synced, realtime listener handles it
-  if (syncEnabled && currentUserId) {
-    return [];
-  }
-  
+  if (syncEnabled && currentUserId) return [];
   try { 
     const r = localStorage.getItem(STORE_KEY); 
     if (r) {
@@ -662,7 +568,7 @@ function loadTrades() {
       return Array.isArray(parsed) ? parsed : [];
     }
   } catch(e) {
-    console.warn('Error loading trades from localStorage:', e);
+    console.warn('Load error:', e);
   }
   return [];
 }
@@ -671,11 +577,11 @@ function saveTrades(data) {
   try {
     localStorage.setItem(STORE_KEY, JSON.stringify(data));
   } catch(e) {
-    console.warn('Error saving to localStorage:', e);
+    console.warn('Save error:', e);
   }
 }
 
-/* ═══ CAPITAL MANAGEMENT ═══ */
+/* ═══ CAPITAL ═══ */
 function getDepositedCapital() {
   const val = localStorage.getItem(DEPOSIT_KEY);
   return val ? parseFloat(val) : 0;
@@ -683,12 +589,9 @@ function getDepositedCapital() {
 
 function setDepositedCapital(amount) {
   localStorage.setItem(DEPOSIT_KEY, amount.toString());
-  
-  // Sync to cloud settings
   if (syncEnabled && currentUserId) {
     saveUserSettings({ depositedCapital: amount });
   }
-  
   updateSidebarCapital();
   renderDashboard();
 }
@@ -702,12 +605,11 @@ function getCurrentCapital() {
 }
 
 function updateSidebarCapital() {
-  const deposited = getDepositedCapital();
   const totalInvested = trades.reduce((sum, t) => sum + (t.capital || 0), 0);
   const currentCapital = getCurrentCapital();
   
   set('sideCapital', fmt.currency(currentCapital, 0));
-  set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
+  set('sideCapSub', `₹${fmt.currency(totalInvested,0)} • ${trades.length} trades`);
   set('kpiCap', fmt.currency(currentCapital, 0));
 }
 
@@ -755,14 +657,14 @@ function enrich(t) {
   const {entryPrice:e, stopLoss:sl, exitPrice:ex, capital:c, target1:t1} = t;
   const slSize = calcSLSize(e,sl);
   const points = calcPoints(e,ex,sl);
-  const pnl    = calcProfitLoss(e,ex,sl,c);
-  const pct    = calcPctReturn(e,ex,sl);
-  const rr     = calcRR(e,sl,t1);
+  const pnl = calcProfitLoss(e,ex,sl,c);
+  const pct = calcPctReturn(e,ex,sl);
+  const rr = calcRR(e,sl,t1);
   const result = tradeResult(pnl);
   return {...t, slSize, points, pnl, pct, rr, result};
 }
 
-/* ═══ THEME MANAGEMENT ═══ */
+/* ═══ THEME ═══ */
 const THEME_KEY = 'tradevault_theme';
 
 function getPreferredTheme() {
@@ -774,19 +676,14 @@ function getPreferredTheme() {
 function applyTheme(theme) {
   document.documentElement.setAttribute('data-theme', theme);
   localStorage.setItem(THEME_KEY, theme);
-  
-  // Sync theme preference
   if (syncEnabled && currentUserId) {
     saveUserSettings({ theme });
   }
-  
   setTimeout(() => {
-    if (typeof renderDashboard === 'function' &&
-    document.getElementById('view-dashboard')?.classList.contains('active')) {
+    if (document.getElementById('view-dashboard')?.classList.contains('active')) {
       renderDashboard();
     }
-    if (typeof renderAnalytics === 'function' &&
-    document.getElementById('view-report')?.classList.contains('active')) {
+    if (document.getElementById('view-report')?.classList.contains('active')) {
       renderAnalytics();
     }
   }, 100);
@@ -796,12 +693,10 @@ function toggleTheme() {
   const current = document.documentElement.getAttribute('data-theme') || 'dark';
   const next = current === 'dark' ? 'light' : 'dark';
   applyTheme(next);
-  if (typeof showToast === 'function') {
-    showToast(`Switched to ${next} mode`, 'success');
-  }
+  showToast(`Switched to ${next} mode`, 'success');
 }
 
-/* ═══ TARGET CALCULATION ═══ */
+/* ═══ TARGETS ═══ */
 function calcTargets(entry, sl, tradeType) {
   if (!isNum(entry) || !isNum(sl)) {
     return { t1: null, t2: null, t3: null, t4: null };
@@ -820,15 +715,15 @@ function calcTargets(entry, sl, tradeType) {
 /* ═══ CAPITAL FUNCTIONS ═══ */
 function editDepositedCapital() {
   const current = getDepositedCapital();
-  const newAmount = prompt('Enter your total initial deposited capital (₹):\n(Display will update with P&L)', current);
+  const newAmount = prompt('Enter initial deposited capital (₹):', current);
   if (newAmount === null) return;
   const amount = parseFloat(newAmount);
   if (isNaN(amount) || amount < 0) {
-    showToast('Please enter a valid amount', 'error');
+    showToast('Please enter valid amount', 'error');
     return;
   }
   setDepositedCapital(amount);
-  showToast(`Initial Capital updated to ${fmt.currency(amount, 0)}`, 'success');
+  showToast(`Capital updated: ${fmt.currency(amount, 0)}`, 'success');
   validateFormCapital();
 }
 
@@ -839,7 +734,7 @@ function validateFormCapital() {
   if (!warningEl) return;
   
   if (currentCapital <= 0) {
-    warningEl.innerHTML = `<span style="color:var(--amber)">⚠️ Set your deposited capital first</span>`;
+    warningEl.innerHTML = `<span style="color:var(--amber)">⚠️ Set deposited capital first</span>`;
     warningEl.style.display = 'block';
     return;
   }
@@ -849,23 +744,12 @@ function validateFormCapital() {
   }
   const percent = (invested / currentCapital) * 100;
   if (invested > currentCapital) {
-    warningEl.innerHTML = `
-    <span style="color:var(--rose)">
-    ⚠️ Investment (₹${fmt.currency(invested,0)}) exceeds current capital (₹${fmt.currency(currentCapital,0)})
-    <br><small>Reduce amount or increase capital</small>
-    </span>`;
+    warningEl.innerHTML = `<span style="color:var(--rose)">⚠️ Exceeds capital (₹${fmt.currency(currentCapital,0)})</span>`;
     warningEl.style.display = 'block';
-    warningEl.className = 'capital-warning danger';
   } else {
     const color = percent > 80 ? 'var(--amber)' : 'var(--emerald)';
-    const cls = percent > 80 ? 'warning' : (percent > 50 ? 'warning' : '');
-    warningEl.innerHTML = `
-    <span style="color:${color}">
-    ✓ Using ${percent.toFixed(1)}% of current capital
-    <br><small>₹${fmt.currency(currentCapital - invested, 0)} remaining</small>
-    </span>`;
+    warningEl.innerHTML = `<span style="color:${color}">✓ Using ${percent.toFixed(1)}% • ₹${fmt.currency(currentCapital - invested, 0)} left</span>`;
     warningEl.style.display = 'block';
-    warningEl.className = `capital-warning ${cls}`;
   }
 }
 
@@ -893,19 +777,16 @@ const fmt = {
 function pnlCls(v) { if(v===null||isNaN(v)) return ''; return v>0?'pos':v<0?'neg':'zero'; }
 function pnlClr(v) { if(v>0) return 'var(--emerald)'; if(v<0) return 'var(--rose)'; return ''; }
 
-/* ═══ EMPTY STATE HANDLERS ═══ */
+/* ═══ EMPTY STATES ═══ */
 function showEmptyState(elementId, message, subMessage = '') {
   const el = document.getElementById(elementId);
   if (!el) return;
   el.innerHTML = `
     <div style="text-align:center;padding:40px 20px;color:var(--text3)">
       <div style="font-size:32px;margin-bottom:12px">📭</div>
-      <div style="font-family:'Outfit',sans-serif;font-size:14px;color:var(--text2);margin-bottom:6px">
-        ${message}
-      </div>
+      <div style="font-family:'Outfit',sans-serif;font-size:14px;color:var(--text2);margin-bottom:6px">${message}</div>
       ${subMessage ? `<div style="font-size:11px">${subMessage}</div>` : ''}
-    </div>
-  `;
+    </div>`;
 }
 
 function renderEmptyDashboard() {
@@ -917,7 +798,7 @@ function renderEmptyDashboard() {
   set('kpiCap', fmt.currency(getDepositedCapital(), 0));
   set('kpiPnlSub', 'No trades yet');
   set('kpiWinSub', 'Start adding trades');
-  set('kpiTradesSub', 'Your journey begins here');
+  set('kpiTradesSub', 'Your journey begins');
   
   ['equityChart','winLossChart','symbolChart','typeChart','monthChart'].forEach(id => {
     destroyChart(id);
@@ -927,13 +808,12 @@ function renderEmptyDashboard() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     }
   });
-  showEmptyState('recentTbody', 'No trades recorded', 'Click "Add Trade" to log your first trade');
-  const now = new Date();
-  set('dashDate', `Last updated: ${now.toLocaleDateString('en-IN')}`);
+  showEmptyState('recentTbody', 'No trades', 'Click "Add Trade" to start');
+  set('dashDate', `Last updated: ${new Date().toLocaleDateString('en-IN')}`);
 }
 
 function renderEmptyJournal() {
-  showEmptyState('journalTbody', 'Your journal is empty', 'Add your first trade to start tracking');
+  showEmptyState('journalTbody', 'Journal empty', 'Add your first trade');
   document.getElementById('journalPagination').innerHTML = '';
 }
 
@@ -943,12 +823,9 @@ function renderEmptyAnalytics() {
     grid.innerHTML = `
       <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text3)">
         <div style="font-size:32px;margin-bottom:12px">📊</div>
-        <div style="font-family:'Outfit',sans-serif;font-size:14px;color:var(--text2)">
-          No data to analyze yet
-        </div>
-        <div style="font-size:11px;margin-top:6px">Add trades to see performance metrics</div>
-      </div>
-    `;
+        <div style="font-family:'Outfit',sans-serif;font-size:14px;color:var(--text2)">No data yet</div>
+        <div style="font-size:11px;margin-top:6px">Add trades to see analytics</div>
+      </div>`;
   }
   ['rrChart','entryDisciplineChart','slPlacementChart','exitQualityChart','pnlByExecutionChart'].forEach(id => {
     destroyChart(id);
@@ -995,129 +872,190 @@ function renderDashboard() {
   
   const rich = trades.map(enrich);
   const closed = rich.filter(t=>t.result!=='open');
-  const wins   = rich.filter(t=>t.result==='win');
+  const wins = rich.filter(t=>t.result==='win');
   const losses = rich.filter(t=>t.result==='loss');
-  const total  = wins.length + losses.length;
+  const total = wins.length + losses.length;
   const totalPnl = closed.reduce((a,t)=>a+(t.pnl||0),0);
-  const winRate  = total>0 ? wins.length/total : 0;
-  const avgPnl   = total>0 ? totalPnl/total : 0;
-  const rrVals   = rich.map(t=>t.rr).filter(v=>v!==null);
-  const avgRR    = rrVals.length ? rrVals.reduce((a,b)=>a+b,0)/rrVals.length : 0;
+  const winRate = total>0 ? wins.length/total : 0;
+  const avgPnl = total>0 ? totalPnl/total : 0;
+  const rrVals = rich.map(t=>t.rr).filter(v=>v!==null);
+  const avgRR = rrVals.length ? rrVals.reduce((a,b)=>a+b,0)/rrVals.length : 0;
   const totalInvested = rich.reduce((a,t)=>a+(t.capital||0),0);
   
-  set('kpiPnl',  fmt.currency(totalPnl,0)); cls('kpiPnl',pnlCls(totalPnl));
-  set('kpiWin',  fmt.pct(winRate));
+  set('kpiPnl', fmt.currency(totalPnl,0)); cls('kpiPnl',pnlCls(totalPnl));
+  set('kpiWin', fmt.pct(winRate));
   set('kpiTrades', rich.length);
-  set('kpiAvg',  fmt.currency(avgPnl,0));   cls('kpiAvg',pnlCls(avgPnl));
-  set('kpiRR',   fmt.num(avgRR,2));
+  set('kpiAvg', fmt.currency(avgPnl,0)); cls('kpiAvg',pnlCls(avgPnl));
+  set('kpiRR', fmt.num(avgRR,2));
   
   const currentCapital = getCurrentCapital();
   set('kpiCap', fmt.currency(currentCapital, 0));
   set('kpiPnlSub', `${wins.length}W / ${losses.length}L / ${rich.filter(t=>t.result==='open').length} Open`);
   set('kpiWinSub', `${wins.length} wins of ${total} closed`);
-  set('kpiTradesSub', `${rich.length} total logged`);
+  set('kpiTradesSub', `${rich.length} total`);
   
   const deposited = getDepositedCapital();
   set('sideCapital', fmt.currency(currentCapital, 0));
-  set('sideCapSub', `₹${fmt.currency(totalInvested,0)} invested • ${trades.length} trades`);
+  set('sideCapSub', `₹${fmt.currency(totalInvested,0)} • ${trades.length} trades`);
   
-  // Equity Chart
+  // Equity Chart - ✅ FIXED SYNTAX
   destroyChart('equityChart');
   const sorted = [...rich].filter(t=>t.date&&t.result!=='open').sort((a,b)=>new Date(a.date)-new Date(b.date));
   if (sorted.length > 0) {
     let running = 0;
     const eqLabels = sorted.map(t=>fmt.date(t.date));
-    const eqData   = sorted.map(t=>{running+=(t.pnl||0); return +running.toFixed(2);});
+    const eqData = sorted.map(t=>{running+=(t.pnl||0); return +running.toFixed(2);});
     CHARTS.equityChart = new Chart(document.getElementById('equityChart'), {
-      type:'line',
-      data:{labels:eqLabels,datasets:[{
-        label:'Cumulative P&L (₹)',data:eqData,
-        borderColor:CF.cyan,backgroundColor:'rgba(0,212,255,0.06)',
-        fill:true,tension:0.4,pointRadius:3,pointHoverRadius:5,
-        pointBackgroundColor:CF.cyan,borderWidth:2,
-      }]},
-      options:baseOpts(30),
+      type: 'line',
+      data: {
+        labels: eqLabels,
+        datasets: [{
+          label: 'Cumulative P&L (₹)',
+          data: eqData,
+          borderColor: CF.cyan,
+          backgroundColor: 'rgba(0,212,255,0.06)',
+          fill: true,
+          tension: 0.4,
+          pointRadius: 3,
+          pointHoverRadius: 5,
+          pointBackgroundColor: CF.cyan,
+          borderWidth: 2,
+        }]
+      },
+      options: baseOpts(30),
     });
   }
   
-  // Win/Loss Chart
+  // Win/Loss Chart - ✅ FIXED SYNTAX
   destroyChart('winLossChart');
   const openCount = rich.filter(t=>t.result==='open').length;
   CHARTS.winLossChart = new Chart(document.getElementById('winLossChart'), {
-    type:'doughnut',
-    data:{
-      labels:['Win','Loss','Open'],
-      datasets:[{data:[wins.length,losses.length,openCount],
-      backgroundColor:[CF.emerald,CF.rose,CF.amber],
-      borderColor:'#0D0F17',borderWidth:3,
+    type: 'doughnut',
+    data: {
+      labels: ['Win','Loss','Open'],
+      datasets: [{
+        data: [wins.length, losses.length, openCount],
+        backgroundColor: [CF.emerald, CF.rose, CF.amber],
+        borderColor: '#0D0F17',
+        borderWidth: 3,
       }]
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,cutout:'68%',
-      plugins:{
-        legend:{labels:{color:CF.text2,font:{family:"'DM Mono',monospace",size:10},padding:14}},
-        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} trades`}},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '68%',
+      plugins: {
+        legend: {
+          labels: {
+            color: CF.text2,
+            font: { family: "'DM Mono',monospace", size: 10 },
+            padding: 14
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw} trades`
+          }
+        }
       }
     }
   });
   
-  // Symbol Chart
+  // Symbol Chart - ✅ FIXED SYNTAX
   destroyChart('symbolChart');
   const bySymbol = {};
   rich.forEach(t=>{ if(!t.symbol) return; bySymbol[t.symbol]=(bySymbol[t.symbol]||0)+(t.pnl||0); });
   if (Object.keys(bySymbol).length > 0) {
     CHARTS.symbolChart = new Chart(document.getElementById('symbolChart'), {
-      type:'bar',
-      data:{
-        labels:Object.keys(bySymbol),
-        datasets:[{
-          label:'P&L (₹)',data:Object.values(bySymbol),
-          backgroundColor:Object.values(bySymbol).map(v=>v>=0?'rgba(0,200,150,0.65)':'rgba(255,77,109,0.65)'),
-          borderRadius:4,
+      type: 'bar',
+      data: {
+        labels: Object.keys(bySymbol),
+        datasets: [{
+          label: 'P&L (₹)',
+          data: Object.values(bySymbol),
+          backgroundColor: Object.values(bySymbol).map(v=>v>=0?'rgba(0,200,150,0.65)':'rgba(255,77,109,0.65)'),
+          borderRadius: 4,
         }]
       },
-      options:{...baseOpts(),plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:ctx=>` ${fmt.currency(ctx.raw,0)}`}}}},
+      options: {
+        ...baseOpts(),
+        plugins: {
+          ...baseOpts().plugins,
+          tooltip: {
+            ...baseOpts().plugins.tooltip,
+            callbacks: {
+              label: ctx => ` ${fmt.currency(ctx.raw,0)}`
+            }
+          }
+        }
+      }
     });
   }
   
-  // Type Chart
+  // Type Chart - ✅ FIXED SYNTAX
   destroyChart('typeChart');
   const byType = {};
   rich.forEach(t=>{ const k=t.tradeType||'Unknown'; byType[k]=(byType[k]||0)+1; });
   CHARTS.typeChart = new Chart(document.getElementById('typeChart'), {
-    type:'doughnut',
-    data:{
-      labels:Object.keys(byType),
-      datasets:[{data:Object.values(byType),
-      backgroundColor:[CF.cyan,CF.violet,CF.amber],
-      borderColor:'#0D0F17',borderWidth:3,
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(byType),
+      datasets: [{
+        data: Object.values(byType),
+        backgroundColor: [CF.cyan, CF.violet, CF.amber],
+        borderColor: '#0D0F17',
+        borderWidth: 3,
       }]
     },
-    options:{
-      responsive:true,maintainAspectRatio:false,cutout:'60%',
-      plugins:{
-        legend:{labels:{color:CF.text2,font:{family:"'DM Mono',monospace",size:10},padding:12}},
-        tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw}`}},
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      cutout: '60%',
+      plugins: {
+        legend: {
+          labels: {
+            color: CF.text2,
+            font: { family: "'DM Mono',monospace", size: 10 },
+            padding: 12
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` ${ctx.label}: ${ctx.raw}`
+          }
+        }
       }
     }
   });
   
-  // Month Chart
+  // Month Chart - ✅ FIXED SYNTAX
   destroyChart('monthChart');
   const byMonth = {};
   rich.forEach(t=>{ const k=fmt.monthKey(t.date); byMonth[k]=(byMonth[k]||0)+(t.pnl||0); });
   if (Object.keys(byMonth).length > 0) {
     CHARTS.monthChart = new Chart(document.getElementById('monthChart'), {
-      type:'bar',
-      data:{
-        labels:Object.keys(byMonth),
-        datasets:[{
-          label:'Monthly P&L (₹)',data:Object.values(byMonth),
-          backgroundColor:Object.values(byMonth).map(v=>v>=0?'rgba(0,200,150,0.65)':'rgba(255,77,109,0.65)'),
-          borderRadius:4,
+      type: 'bar',
+      data: {
+        labels: Object.keys(byMonth),
+        datasets: [{
+          label: 'Monthly P&L (₹)',
+          data: Object.values(byMonth),
+          backgroundColor: Object.values(byMonth).map(v=>v>=0?'rgba(0,200,150,0.65)':'rgba(255,77,109,0.65)'),
+          borderRadius: 4,
         }]
       },
-      options:{...baseOpts(20),plugins:{...baseOpts().plugins,tooltip:{...baseOpts().plugins.tooltip,callbacks:{label:ctx=>` ${fmt.currency(ctx.raw,0)}`}}}},
+      options: {
+        ...baseOpts(20),
+        plugins: {
+          ...baseOpts().plugins,
+          tooltip: {
+            ...baseOpts().plugins.tooltip,
+            callbacks: {
+              label: ctx => ` ${fmt.currency(ctx.raw,0)}`
+            }
+          }
+        }
+      }
     });
   }
   
@@ -1128,10 +1066,10 @@ function renderDashboard() {
 
 function renderRecentTable() {
   if (trades.length === 0) {
-    showEmptyState('recentTbody', 'No trades yet', 'Add your first trade to see it here');
+    showEmptyState('recentTbody', 'No trades yet', 'Add your first trade');
     return;
   }
-  const q    = (document.getElementById('dashSearch')?.value||'').toLowerCase();
+  const q = (document.getElementById('dashSearch')?.value||'').toLowerCase();
   const rich = trades.map((t,i)=>({...enrich(t),_i:i}));
   const filt = rich.filter(t=>
     !q || (t.symbol||'').toLowerCase().includes(q) || (t.date||'').includes(q) || (t.reason||'').toLowerCase().includes(q)
@@ -1139,7 +1077,7 @@ function renderRecentTable() {
   const tbody = document.getElementById('recentTbody'); if(!tbody) return;
   
   if (filt.length === 0) {
-    showEmptyState('recentTbody', 'No matching trades', 'Try different search terms');
+    showEmptyState('recentTbody', 'No matching trades', 'Try different search');
     return;
   }
   tbody.innerHTML = filt.slice(-20).reverse().map((t,n)=>tradeRow(t,n+1)).join('');
@@ -1159,10 +1097,10 @@ function renderJournal() {
 }
 
 function renderJournalPage() {
-  const q   = (document.getElementById('journalSearch')?.value||'').toLowerCase();
-  const fM  = document.getElementById('filterMonth')?.value||'';
-  const fS  = document.getElementById('filterSymbol')?.value||'';
-  const fR  = document.getElementById('filterResult')?.value||'';
+  const q = (document.getElementById('journalSearch')?.value||'').toLowerCase();
+  const fM = document.getElementById('filterMonth')?.value||'';
+  const fS = document.getElementById('filterSymbol')?.value||'';
+  const fR = document.getElementById('filterResult')?.value||'';
   
   const rich = trades.map((t,i)=>({...enrich(t),_i:i}));
   const filt = rich.filter(t=>{
@@ -1180,7 +1118,7 @@ function renderJournalPage() {
   }
   
   if (filt.length === 0) {
-    showEmptyState('journalTbody', 'No trades match your filters', 'Clear filters or add new trades');
+    showEmptyState('journalTbody', 'No trades match filters', 'Clear filters');
     document.getElementById('journalPagination').innerHTML = '';
     return;
   }
@@ -1201,7 +1139,7 @@ function renderJournalPage() {
 function goPage(p) { jPage=p; renderJournalPage(); }
 
 function populateFilters() {
-  const months  = [...new Set(trades.map(t=>fmt.monthKey(t.date)).filter(Boolean))];
+  const months = [...new Set(trades.map(t=>fmt.monthKey(t.date)).filter(Boolean))];
   const symbols = [...new Set(trades.map(t=>t.symbol).filter(Boolean))];
   const mSel=document.getElementById('filterMonth'), sSel=document.getElementById('filterSymbol');
   if(!mSel||!sSel) return;
@@ -1255,7 +1193,7 @@ function journalRow(t, n) {
   <td><span class="badge ${t.result==='win'?'badge-win':t.result==='loss'?'badge-loss':'badge-open'}">${t.result==='open'?'Open':t.result==='win'?'Win':'Loss'}</span></td>
   <td>
   <button class="btn-edit-sm" onclick="openEditView(${t._i})">Edit</button>
-  <button class="btn-del-sm"  onclick="deleteTrade(${t._i})">Del</button>
+  <button class="btn-del-sm" onclick="deleteTrade(${t._i})">Del</button>
   </td>
   </tr>`;
 }
@@ -1299,15 +1237,15 @@ function clearForm() {
   setRadioValue('fExitQuality', 'plan');
 }
 
-/* ═══ SAVE TRADE - FIXED FOR FIREBASE SYNC ═══ */
+/* ═══ SAVE TRADE ═══ */
 function saveTrade() {
   const date=getv('fDate'), symbol=getv('fSymbol').trim(), type=getv('fType');
   const cap=parseFloat(getv('fCapital')), entry=parseFloat(getv('fEntry')), sl=parseFloat(getv('fSL'));
-  if(!date)       return showToast('Please enter a date.','error');
-  if(!symbol)     return showToast('Please enter a stock symbol.','error');
-  if(!type)       return showToast('Please select a trade type.','error');
-  if(isNaN(entry))return showToast('Please enter a valid entry price.','error');
-  if(isNaN(sl))   return showToast('Please enter a valid stop loss.','error');
+  if(!date) return showToast('Enter date','error');
+  if(!symbol) return showToast('Enter symbol','error');
+  if(!type) return showToast('Select type','error');
+  if(isNaN(entry)) return showToast('Enter entry price','error');
+  if(isNaN(sl)) return showToast('Enter stop loss','error');
   
   const currentCapital = getCurrentCapital();
   const invested = parseFloat(getv('fCapital'));
@@ -1319,10 +1257,7 @@ function saveTrade() {
   }
   
   if (currentCapital > 0 && (totalInvested + invested) > currentCapital) {
-    if (!confirm(`⚠️ Total invested capital will exceed current capital.
-Current Capital: ₹${fmt.currency(currentCapital,0)}
-After this trade: ₹${fmt.currency(totalInvested + invested,0)}
-Continue anyway?`)) {
+    if (!confirm(`⚠️ Investment exceeds capital.\nCurrent: ₹${fmt.currency(currentCapital,0)}\nAfter: ₹${fmt.currency(totalInvested + invested,0)}\nContinue?`)) {
       return;
     }
   }
@@ -1348,34 +1283,26 @@ Continue anyway?`)) {
     showToast('Trade added! ✓', 'success'); 
   }
   
-  // 🔄 SYNC TO FIREBASE (with userId)
   syncTradeToCloud(trade);
-  
   clearForm(); 
-  // renderAll() will be called by realtime listener automatically
   switchView('journal',document.querySelector('[data-view="journal"]'));
 }
 
-/* ═══ DELETE TRADE - FIXED FOR FIREBASE ═══ */
+/* ═══ DELETE TRADE ═══ */
 function deleteTrade(idx) {
-  if(!confirm('Delete this trade permanently? This cannot be undone.')) return;
+  if(!confirm('Delete this trade?')) return;
   
   const trade = trades[idx];
   const firebaseId = trade.firebaseId;
   
-  // Remove from local array first for immediate UI update
   trades.splice(idx, 1);
   
-  // 🔄 DELETE FROM FIREBASE
   if (firebaseId && syncEnabled && currentUserId) {
     deleteTradeFromCloud(firebaseId);
   }
   
-  // Backup to localStorage
   saveTrades(trades);
-  
   showToast('Trade deleted ✓', 'success');
-  // renderAll() will be called by realtime listener
 }
 
 /* ═══ CALC PNL ═══ */
@@ -1420,45 +1347,42 @@ function renderAnalytics() {
     return;
   }
   
-  const rich   = trades.map(enrich);
-  const wins   = rich.filter(t=>t.result==='win');
+  const rich = trades.map(enrich);
+  const wins = rich.filter(t=>t.result==='win');
   const losses = rich.filter(t=>t.result==='loss');
   const closed = wins.length + losses.length;
   const totalPnl = rich.reduce((a,t)=>a+(t.pnl||0),0);
-  const winRate  = closed>0 ? wins.length/closed : 0;
-  const avgWin   = wins.length   ? wins.reduce((a,t)=>a+(t.pnl||0),0)/wins.length : 0;
-  const avgLoss  = losses.length ? losses.reduce((a,t)=>a+(t.pnl||0),0)/losses.length : 0;
-  const rrVals   = rich.map(t=>t.rr).filter(v=>v!==null);
-  const avgRR    = rrVals.length ? rrVals.reduce((a,b)=>a+b,0)/rrVals.length : 0;
-  const maxWin   = wins.length   ? Math.max(...wins.map(t=>t.pnl))   : 0;
-  const maxLoss  = losses.length ? Math.min(...losses.map(t=>t.pnl)) : 0;
-  const totalInvested = rich.reduce((a,t)=>a+(t.capital||0),0);
+  const winRate = closed>0 ? wins.length/closed : 0;
+  const avgWin = wins.length ? wins.reduce((a,t)=>a+(t.pnl||0),0)/wins.length : 0;
+  const avgLoss = losses.length ? losses.reduce((a,t)=>a+(t.pnl||0),0)/losses.length : 0;
+  const rrVals = rich.map(t=>t.rr).filter(v=>v!==null);
+  const avgRR = rrVals.length ? rrVals.reduce((a,b)=>a+b,0)/rrVals.length : 0;
+  const maxWin = wins.length ? Math.max(...wins.map(t=>t.pnl)) : 0;
+  const maxLoss = losses.length ? Math.min(...losses.map(t=>t.pnl)) : 0;
   const expectancy = winRate*avgWin + (1-winRate)*avgLoss;
-  
   const currentCapital = getCurrentCapital();
   
-  let streak=0,maxStreak=0,curStreak=0;
+  let maxStreak=0,streak=0;
   rich.filter(t=>t.result!=='open').forEach(t=>{
     if(t.result==='win'){streak++;maxStreak=Math.max(maxStreak,streak);}else streak=0;
-    curStreak=streak;
   });
   const profitFactor = losses.length && Math.abs(avgLoss)>0 ? Math.abs(avgWin*wins.length / (avgLoss*losses.length)) : null;
   
   const data = [
-    {label:'Total Trades Logged', val:rich.length, clr:''},
-    {label:'Closed Trades',       val:closed, clr:''},
-    {label:'Open Positions',      val:rich.filter(t=>t.result==='open').length, clr:'var(--amber)'},
-    {label:'Win Rate',            val:fmt.pct(winRate), clr:winRate>=.5?'var(--emerald)':'var(--rose)'},
-    {label:'Total P&L',           val:fmt.currency(totalPnl,0), clr:pnlClr(totalPnl)},
-    {label:'Expectancy / Trade',  val:fmt.currency(expectancy,0), clr:pnlClr(expectancy)},
-    {label:'Avg Win',             val:fmt.currency(avgWin,0), clr:'var(--emerald)'},
-    {label:'Avg Loss',            val:fmt.currency(avgLoss,0), clr:'var(--rose)'},
-    {label:'Best Trade',          val:fmt.currency(maxWin,0), clr:'var(--emerald)'},
-    {label:'Worst Trade',         val:fmt.currency(maxLoss,0), clr:'var(--rose)'},
-    {label:'Avg R:R Ratio',       val:fmt.num(avgRR,2), clr:avgRR>=1?'var(--emerald)':'var(--amber)'},
-    {label:'Profit Factor',       val:profitFactor!==null?profitFactor.toFixed(2):'—', clr:profitFactor>=1?'var(--emerald)':'var(--rose)'},
-    {label:'Max Win Streak',      val:maxStreak, clr:'var(--cyan)'},
-    {label:'Current Capital',     val:fmt.currency(currentCapital,0), clr:pnlClr(currentCapital - getDepositedCapital())},
+    {label:'Total Trades', val:rich.length, clr:''},
+    {label:'Closed Trades', val:closed, clr:''},
+    {label:'Open Positions', val:rich.filter(t=>t.result==='open').length, clr:'var(--amber)'},
+    {label:'Win Rate', val:fmt.pct(winRate), clr:winRate>=.5?'var(--emerald)':'var(--rose)'},
+    {label:'Total P&L', val:fmt.currency(totalPnl,0), clr:pnlClr(totalPnl)},
+    {label:'Expectancy', val:fmt.currency(expectancy,0), clr:pnlClr(expectancy)},
+    {label:'Avg Win', val:fmt.currency(avgWin,0), clr:'var(--emerald)'},
+    {label:'Avg Loss', val:fmt.currency(avgLoss,0), clr:'var(--rose)'},
+    {label:'Best Trade', val:fmt.currency(maxWin,0), clr:'var(--emerald)'},
+    {label:'Worst Trade', val:fmt.currency(maxLoss,0), clr:'var(--rose)'},
+    {label:'Avg R:R', val:fmt.num(avgRR,2), clr:avgRR>=1?'var(--emerald)':'var(--amber)'},
+    {label:'Profit Factor', val:profitFactor!==null?profitFactor.toFixed(2):'—', clr:profitFactor>=1?'var(--emerald)':'var(--rose)'},
+    {label:'Max Win Streak', val:maxStreak, clr:'var(--cyan)'},
+    {label:'Current Capital', val:fmt.currency(currentCapital,0), clr:pnlClr(currentCapital - getDepositedCapital())},
   ];
   
   const grid=document.getElementById('statsGrid'); if(grid){
@@ -1500,7 +1424,7 @@ function renderAnalytics() {
   initCalendar();
 }
 
-/* ═══ EXECUTION QUALITY CHARTS ═══ */
+/* ═══ EXECUTION CHARTS ═══ */
 function renderExecutionQualityCharts(rich) {
   destroyChart('entryDisciplineChart');
   const entryData = { perfect:0, early:0, late:0 };
@@ -1636,38 +1560,18 @@ function renderExecutionQualitySummary(rich) {
   
   summary.innerHTML = `
   <div class="exec-summary-grid">
-  <div class="exec-summary-item">
-  <div class="exec-summary-label">Perfect Entry Win Rate</div>
-  <div class="exec-summary-value profit">${getWinRate('entryDiscipline', 'perfect')}%</div>
-  </div>
-  <div class="exec-summary-item">
-  <div class="exec-summary-label">System SL Win Rate</div>
-  <div class="exec-summary-value profit">${getWinRate('slPlacement', 'system')}%</div>
-  </div>
-  <div class="exec-summary-item">
-  <div class="exec-summary-label">Planned Exit Win Rate</div>
-  <div class="exec-summary-value profit">${getWinRate('exitQuality', 'plan')}%</div>
-  </div>
-  <div class="exec-summary-item">
-  <div class="exec-summary-label">Perfect Entry Avg P&L</div>
-  <div class="exec-summary-value">${getAvgPnl('entryDiscipline', 'perfect')}</div>
-  </div>
-  <div class="exec-summary-item">
-  <div class="exec-summary-label">System SL Avg P&L</div>
-  <div class="exec-summary-value">${getAvgPnl('slPlacement', 'system')}</div>
-  </div>
-  <div class="exec-summary-item">
-  <div class="exec-summary-label">Planned Exit Avg P&L</div>
-  <div class="exec-summary-value">${getAvgPnl('exitQuality', 'plan')}</div>
-  </div>
+  <div class="exec-summary-item"><div class="exec-summary-label">Perfect Entry Win Rate</div><div class="exec-summary-value profit">${getWinRate('entryDiscipline', 'perfect')}%</div></div>
+  <div class="exec-summary-item"><div class="exec-summary-label">System SL Win Rate</div><div class="exec-summary-value profit">${getWinRate('slPlacement', 'system')}%</div></div>
+  <div class="exec-summary-item"><div class="exec-summary-label">Planned Exit Win Rate</div><div class="exec-summary-value profit">${getWinRate('exitQuality', 'plan')}%</div></div>
+  <div class="exec-summary-item"><div class="exec-summary-label">Perfect Entry Avg P&L</div><div class="exec-summary-value">${getAvgPnl('entryDiscipline', 'perfect')}</div></div>
+  <div class="exec-summary-item"><div class="exec-summary-label">System SL Avg P&L</div><div class="exec-summary-value">${getAvgPnl('slPlacement', 'system')}</div></div>
+  <div class="exec-summary-item"><div class="exec-summary-label">Planned Exit Avg P&L</div><div class="exec-summary-value">${getAvgPnl('exitQuality', 'plan')}</div></div>
   </div>`;
 }
 
-/* ═══ EXPORT - EXCEL COMPATIBLE ═══ */
+/* ═══ EXPORT ═══ */
 function exportCSV() {
-  const headers = ['Date','Symbol','Trade Type','Entry Price','Stop Loss','SL Size','Exit Price',
-  'Points','Target 1','Target 2','Target 3','Target 4','Capital (INR)','P&L (INR)','Return %','R:R Ratio',
-  'Reason','Notes','Result','Entry Discipline','SL Placement','Exit Quality'];
+  const headers = ['Date','Symbol','Type','Entry','SL','SL Size','Exit','Points','T1','T2','T3','T4','Capital','P&L','Return %','R:R','Reason','Notes','Result','Entry Discipline','SL Placement','Exit Quality'];
   
   const rows = trades.map(t=>{
     const r=enrich(t);
@@ -1682,23 +1586,21 @@ function exportCSV() {
     ].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',');
   });
   
-  // Add UTF-8 BOM for Excel compatibility
   const csv = '\uFEFF' + [headers.join(','),...rows].join('\n');
-  
   const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`TradeVault_Export_${new Date().toISOString().substring(0,10)}.csv`;
+  a.download=`TradeVault_${new Date().toISOString().substring(0,10)}.csv`;
   a.click(); URL.revokeObjectURL(a.href);
-  showToast('Excel-ready CSV exported! 📊','success');
+  showToast('CSV exported! 📊','success');
 }
 
 /* ═══ VIEW ROUTING ═══ */
 const VIEW_META = {
   dashboard:{title:'Dashboard',badge:'Overview'},
-  journal:  {title:'Trade Journal',badge:'All Trades'},
-  add:      {title:'Add Trade',badge:'New Entry'},
-  report:   {title:'Analytics',badge:'Performance'},
+  journal:{title:'Trade Journal',badge:'All Trades'},
+  add:{title:'Add Trade',badge:'New Entry'},
+  report:{title:'Analytics',badge:'Performance'},
 };
 
 function switchView(name, navEl) {
@@ -1710,32 +1612,32 @@ function switchView(name, navEl) {
   set('topbarTitle',meta.title); set('topbarBadge',meta.badge);
   if(window.innerWidth<900) document.getElementById('sidebar').classList.remove('open');
   if(name==='dashboard') renderDashboard();
-  if(name==='journal')   renderJournal();
-  if(name==='report')    renderAnalytics();
+  if(name==='journal') renderJournal();
+  if(name==='report') renderAnalytics();
   return false;
 }
 
 /* ═══ MODAL ═══ */
 function openModal(idx) {
   const t=enrich({...trades[idx],_i:idx});
-  document.getElementById('modalTitle').innerHTML = `<span style="color:var(--cyan)">${t.symbol||'—'}</span> &nbsp;·&nbsp; ${fmt.date(t.date)}`;
+  document.getElementById('modalTitle').innerHTML = `<span style="color:var(--cyan)">${t.symbol||'—'}</span> · ${fmt.date(t.date)}`;
   const fields = [
   ['Date',t.date?fmt.date(t.date):'—'],['Symbol',t.symbol||'—'],
-  ['Trade Type',t.tradeType||'—'],['Result',`<span class="badge ${t.result==='win'?'badge-win':t.result==='loss'?'badge-loss':'badge-open'}">${t.result==='open'?'Open':t.result==='win'?'Win':'Loss'}</span>`],
-  ['Entry Price',fmt.num(t.entryPrice,2)],['Exit Price',isNum(t.exitPrice)?fmt.num(t.exitPrice,2):'Open'],
-  ['Stop Loss',fmt.num(t.stopLoss,2)],['SL Size',fmt.num(t.slSize,2)],
+  ['Type',t.tradeType||'—'],['Result',`<span class="badge ${t.result==='win'?'badge-win':t.result==='loss'?'badge-loss':'badge-open'}">${t.result==='open'?'Open':t.result==='win'?'Win':'Loss'}</span>`],
+  ['Entry',fmt.num(t.entryPrice,2)],['Exit',isNum(t.exitPrice)?fmt.num(t.exitPrice,2):'Open'],
+  ['SL',fmt.num(t.stopLoss,2)],['SL Size',fmt.num(t.slSize,2)],
   ['Points',`<span class="${pnlCls(t.points)}">${fmt.num(t.points,2)}</span>`],
-  ['P&L (₹)',`<span class="${pnlCls(t.pnl)}">${fmt.currency(t.pnl,0)}</span>`],
+  ['P&L',`<span class="${pnlCls(t.pnl)}">${fmt.currency(t.pnl,0)}</span>`],
   ['Return %',`<span class="${pnlCls(t.pct)}">${fmt.pct(t.pct)}</span>`],
-  ['Capital',fmt.currency(t.capital,0)],['R:R Ratio',fmt.num(t.rr,2)],['Target 1',fmt.num(t.target1,2)],
-  ['Target 2',fmt.num(t.target2,2)],['Target 3',fmt.num(t.target3,2)],
+  ['Capital',fmt.currency(t.capital,0)],['R:R',fmt.num(t.rr,2)],
+  ['T1',fmt.num(t.target1,2)],['T2',fmt.num(t.target2,2)],['T3',fmt.num(t.target3,2)],
   ['Entry Discipline', t.entryDiscipline ? t.entryDiscipline.charAt(0).toUpperCase() + t.entryDiscipline.slice(1) : '—'],
   ['SL Placement', t.slPlacement ? t.slPlacement === 'system' ? 'As per system' : t.slPlacement.charAt(0).toUpperCase() + t.slPlacement.slice(1) : '—'],
   ['Exit Quality', t.exitQuality ? t.exitQuality === 'plan' ? 'As per plan' : t.exitQuality.charAt(0).toUpperCase() + t.exitQuality.slice(1) : '—'],
   ];
   document.getElementById('modalBody').innerHTML = `<div class="modal-grid">${fields.map(([l,v])=>`<div><div class="modal-field-label">${l}</div><div class="modal-field-val">${v}</div></div>`).join('')}</div>`;
   document.getElementById('modalDeleteBtn').onclick = ()=>{ closeModal(); deleteTrade(idx); };
-  document.getElementById('modalEditBtn').onclick   = ()=>{ closeModal(); openEditView(idx); };
+  document.getElementById('modalEditBtn').onclick = ()=>{ closeModal(); openEditView(idx); };
   document.getElementById('modalOverlay').classList.add('open');
 }
 
@@ -1753,9 +1655,6 @@ function showToast(msg, type='') {
   toastTimer=setTimeout(()=>t.classList.remove('show'),3000);
 }
 
-// Alias for backward compatibility
-function toast(msg, type='') { showToast(msg, type); }
-
 /* ═══ HELPERS ═══ */
 function el(id) { return document.getElementById(id); }
 function set(id,val) { const e=el(id); if(e) e.textContent=val; }
@@ -1767,11 +1666,11 @@ function renderAll() {
   const a=document.querySelector('.view.active'); if(!a) return;
   const n=a.id.replace('view-','');
   if(n==='dashboard') renderDashboard();
-  if(n==='journal')   renderJournal();
-  if(n==='report')    renderAnalytics();
+  if(n==='journal') renderJournal();
+  if(n==='report') renderAnalytics();
 }
 
-/* ═══ CALENDAR FUNCTIONS ═══ */
+/* ═══ CALENDAR ═══ */
 let calendarPeriod = 'month';
 let currentDate = new Date();
 
@@ -1844,14 +1743,7 @@ function renderDayView() {
   const dayData = getDayData(dateKey);
   const isToday = isSameDay(currentDate, new Date());
   const cellClass = getCellClass(dayData.pnl);
-  cells.push(`
-  <div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')">
-  <div class="cell-header">
-  <span class="cell-date">${currentDate.getDate()}</span>
-  <span>${currentDate.toLocaleDateString('en-IN',{weekday:'short'})}</span>
-  </div>
-  ${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades} trade${dayData.trades!==1?'s':''}</div>`:'<div class="cell-empty">No trades</div>'}
-  </div>`);
+  cells.push(`<div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')"><div class="cell-header"><span class="cell-date">${currentDate.getDate()}</span><span>${currentDate.toLocaleDateString('en-IN',{weekday:'short'})}</span></div>${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades} trade${dayData.trades!==1?'s':''}</div>`:'<div class="cell-empty">No trades</div>'}</div>`);
   return cells;
 }
 
@@ -1864,14 +1756,7 @@ function renderWeekView() {
     const dayData = getDayData(dateKey);
     const isToday = isSameDay(date, new Date());
     const cellClass = getCellClass(dayData.pnl);
-    cells.push(`
-    <div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')">
-    <div class="cell-header">
-    <span class="cell-date">${date.getDate()}</span>
-    <span>${date.toLocaleDateString('en-IN',{weekday:'short'})}</span>
-    </div>
-    ${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades}T</div>`:'<div class="cell-empty">-</div>'}
-    </div>`);
+    cells.push(`<div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')"><div class="cell-header"><span class="cell-date">${date.getDate()}</span><span>${date.toLocaleDateString('en-IN',{weekday:'short'})}</span></div>${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades}T</div>`:'<div class="cell-empty">-</div>'}</div>`);
   }
   return cells;
 }
@@ -1888,11 +1773,7 @@ function renderMonthView() {
     const dayData = getDayData(dateKey);
     const isToday = isSameDay(date, new Date());
     const cellClass = getCellClass(dayData.pnl);
-    cells.push(`
-    <div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')">
-    <div class="cell-header"><span class="cell-date">${day}</span></div>
-    ${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades}T</div>`:'<div class="cell-empty">-</div>'}
-    </div>`);
+    cells.push(`<div class="calendar-cell ${cellClass} ${isToday?'today':''}" onclick="showDayDetails('${dateKey}')"><div class="cell-header"><span class="cell-date">${day}</span></div>${dayData.pnl!==null?`<div class="cell-pnl ${dayData.pnl>=0?'profit':'loss'}">${fmt.currency(dayData.pnl,0)}</div><div class="cell-trades">${dayData.trades}T</div>`:'<div class="cell-empty">-</div>'}</div>`);
   }
   return cells;
 }
@@ -1906,11 +1787,7 @@ function renderQuarterView() {
     const month = startMonth + i;
     const monthData = getMonthData(year, month);
     const cellClass = getCellClass(monthData.pnl);
-    cells.push(`
-    <div class="calendar-cell ${cellClass}" onclick="showMonthDetails(${year},${month})">
-    <div class="cell-header"><span class="cell-date">${months[month]}</span></div>
-    ${monthData.pnl!==null?`<div class="cell-pnl ${monthData.pnl>=0?'profit':'loss'}">${fmt.currency(monthData.pnl,0)}</div><div class="cell-trades">${monthData.trades} trades</div>`:'<div class="cell-empty">No trades</div>'}
-    </div>`);
+    cells.push(`<div class="calendar-cell ${cellClass}" onclick="showMonthDetails(${year},${month})"><div class="cell-header"><span class="cell-date">${months[month]}</span></div>${monthData.pnl!==null?`<div class="cell-pnl ${monthData.pnl>=0?'profit':'loss'}">${fmt.currency(monthData.pnl,0)}</div><div class="cell-trades">${monthData.trades} trades</div>`:'<div class="cell-empty">No trades</div>'}</div>`);
   }
   return cells;
 }
@@ -1922,11 +1799,7 @@ function renderYearView() {
   for(let month=0;month<12;month++) {
     const monthData = getMonthData(year, month);
     const cellClass = getCellClass(monthData.pnl);
-    cells.push(`
-    <div class="calendar-cell ${cellClass}" onclick="showMonthDetails(${year},${month})">
-    <div class="cell-header"><span class="cell-date">${months[month]}</span></div>
-    ${monthData.pnl!==null?`<div class="cell-pnl ${monthData.pnl>=0?'profit':'loss'}">${fmt.currency(monthData.pnl,0)}</div><div class="cell-trades">${monthData.trades} trades</div>`:'<div class="cell-empty">No trades</div>'}
-    </div>`);
+    cells.push(`<div class="calendar-cell ${cellClass}" onclick="showMonthDetails(${year},${month})"><div class="cell-header"><span class="cell-date">${months[month]}</span></div>${monthData.pnl!==null?`<div class="cell-pnl ${monthData.pnl>=0?'profit':'loss'}">${fmt.currency(monthData.pnl,0)}</div><div class="cell-trades">${monthData.trades} trades</div>`:'<div class="cell-empty">No trades</div>'}</div>`);
   }
   return cells;
 }
@@ -1974,10 +1847,7 @@ function renderCalendarSummary() {
   
   const periodTrades = getPeriodTrades();
   if (periodTrades.length === 0) {
-    summary.innerHTML = `
-    <div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text3);font-size:11px">
-    No trades in this period
-    </div>`;
+    summary.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:20px;color:var(--text3);font-size:11px">No trades</div>`;
     return;
   }
   
@@ -2038,7 +1908,7 @@ function renderCalendarSummary() {
   
   summary.innerHTML = `
   <div class="summary-stat"><div class="summary-label">Total P&L</div><div class="summary-value ${stats.totalPnl>=0?'profit':'loss'}">${fmt.currency(stats.totalPnl,0)}</div></div>
-  <div class="summary-stat"><div class="summary-label">Total Trades</div><div class="summary-value">${stats.totalTrades}</div></div>
+  <div class="summary-stat"><div class="summary-label">Trades</div><div class="summary-value">${stats.totalTrades}</div></div>
   <div class="summary-stat"><div class="summary-label">Wins</div><div class="summary-value profit">${stats.wins}</div></div>
   <div class="summary-stat"><div class="summary-label">Losses</div><div class="summary-value loss">${stats.losses}</div></div>
   <div class="summary-stat"><div class="summary-label">Win Rate</div><div class="summary-value">${stats.winRate}%</div></div>`;
@@ -2062,7 +1932,6 @@ function getPeriodTrades() {
   }
 }
 
-/* ═══ DELETE FILTERED TRADES ═══ */
 function deleteFilteredTrades() {
   const q = (document.getElementById('journalSearch')?.value || '').toLowerCase();
   const fM = document.getElementById('filterMonth')?.value || '';
@@ -2083,8 +1952,7 @@ function deleteFilteredTrades() {
     return;
   }
   
-  const confirmMsg = `Delete ${filtered.length} trade${filtered.length !== 1 ? 's' : ''}? This cannot be undone.`;
-  if(!confirm(confirmMsg)) return;
+  if(!confirm(`Delete ${filtered.length} trade${filtered.length !== 1 ? 's' : ''}?`)) return;
   
   const indicesToDelete = filtered.map(t => t._i).sort((a, b) => b - a);
   indicesToDelete.forEach(idx => {
@@ -2096,7 +1964,7 @@ function deleteFilteredTrades() {
   });
   
   saveTrades(trades);
-  showToast(`${filtered.length} trade${filtered.length !== 1 ? 's' : ''} deleted successfully`, 'success');
+  showToast(`${filtered.length} deleted ✓`, 'success');
   
   document.getElementById('journalSearch').value = '';
   document.getElementById('filterMonth').value = '';
@@ -2112,7 +1980,7 @@ function deleteFilteredTrades() {
 
 function showDayDetails(dateKey) {
   const dayTrades = trades.filter(t => t.date === dateKey);
-  if(dayTrades.length === 0) { showToast('No trades on this day', 'error'); return; }
+  if(dayTrades.length === 0) { showToast('No trades', 'error'); return; }
   switchView('journal', document.querySelector('[data-view="journal"]'));
   document.getElementById('journalSearch').value = dateKey;
   renderJournal();
@@ -2132,52 +2000,46 @@ function initCalendar() {
   renderCalendar();
 }
 
-/* ═══ CONNECTION HANDLERS ═══ */
+/* ═══ CONNECTION ═══ */
 window.addEventListener('online', () => {
-  console.log('🌐 Back online');
+  console.log('🌐 Online');
   updateSyncStatus('connected');
   if (syncEnabled && currentUserId && db) {
-    // Re-setup sync listener when back online
     if (syncUnsubscribe) {
       syncUnsubscribe();
       syncUnsubscribe = null;
     }
     setupRealtimeSync();
-    showToast('🔄 Reconnected - syncing data...', 'success');
+    showToast('🔄 Reconnected', 'success');
   }
 });
 
 window.addEventListener('offline', () => {
-  console.log('✈️ Offline mode');
+  console.log('✈️ Offline');
   updateSyncStatus('offline');
-  showToast('⚠️ Offline - changes will sync when back online', 'error');
+  showToast('⚠️ Offline mode', 'error');
 });
 
-// Handle page visibility for better sync management
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible' && syncEnabled && currentUserId) {
-    console.log('👁️ Page visible - refreshing data');
-    // Optionally refresh data when tab becomes visible
+    console.log('👁️ Visible');
   }
 });
 
 /* ═══ INIT ═══ */
 document.addEventListener('DOMContentLoaded', () => {
-  // Initialize Firebase first
   const firebaseOk = initFirebase();
   
   if (!firebaseOk) {
-    console.error('Firebase failed to initialize');
-    showToast('Failed to connect to server. Please refresh the page.', 'error');
+    console.error('Firebase failed');
+    showToast('Failed to connect. Refresh.', 'error');
     return;
   }
   
   const today = new Date().toISOString().substring(0,10);
   const fd = document.getElementById('fDate'); if(fd) fd.value=today;
   
-  // Initial render (will be updated by realtime listener if synced)
   if (!syncEnabled) {
-    // Load from localStorage for offline mode
     trades = loadTrades();
     renderDashboard();
     populateFilters();
@@ -2190,7 +2052,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('fCapital')?.addEventListener('input', validateFormCapital);
   }
   
-  // Periodic localStorage backup (every 30 seconds)
   setInterval(() => {
     if (trades.length > 0) {
       try {
@@ -2201,7 +2062,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   }, 30000);
   
-  // Apply saved theme on load
   const savedTheme = getPreferredTheme();
   if (savedTheme) {
     applyTheme(savedTheme);
