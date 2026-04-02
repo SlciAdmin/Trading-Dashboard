@@ -12,7 +12,7 @@
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
-<!-- 🔥 FIREBASE SDK - VERSION 10.8.0 COMPATIBLE 🔥 -->
+<!-- 🔥 FIREBASE SDK v10.8.0 COMPAT 🔥 -->
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-auth-compat.js"></script>
@@ -20,8 +20,15 @@
 <!-- External CSS -->
 <link rel="stylesheet" href="style.css"/>
 
-<!-- Fix: Prevent favicon 404 -->
+<!-- Favicon Fix -->
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>">
+
+<style>
+/* Critical Auth Styles */
+.auth-error { color: var(--rose, #ff4d6d); font-size: 11px; margin: 8px 0; padding: 8px; background: rgba(255,77,109,0.1); border-radius: 6px; border: 1px solid rgba(255,77,109,0.2); display: none; }
+.auth-loading { opacity: 0.7; pointer-events: none; }
+.auth-success { color: var(--emerald, #00c896); font-size: 11px; margin: 8px 0; }
+</style>
 </head>
 <body>
 <!-- SIDEBAR -->
@@ -69,6 +76,7 @@ Analytics
 <div class="cap-utilization" id="capUtilization"></div>
 </div>
 </aside>
+
 <!-- MAIN -->
 <main class="main-content">
 <!-- TOPBAR -->
@@ -79,23 +87,11 @@ Analytics
 <div class="topbar-badge" id="topbarBadge">Overview</div>
 </div>
 <div class="topbar-actions">
-  <!-- Sync Status Indicator -->
-  <div id="syncStatus" style="font-size:11px;color:var(--text3);margin-right:8px" title="Sync status">
-    ● Checking...
-  </div>
+  <div id="syncStatus" style="font-size:11px;color:var(--text3);margin-right:8px" title="Sync status">● Checking...</div>
+  <div id="userInfo" style="font-size:11px;color:var(--text3);margin-right:8px;display:none"></div>
   <button class="theme-toggle" id="themeToggle" title="Toggle theme" onclick="toggleTheme()">
     <svg id="themeIcon" viewBox="0 0 24 24">
-      <g class="sun-icon">
-        <circle cx="12" cy="12" r="4"/>
-        <line x1="12" y1="2" x2="12" y2="5"/>
-        <line x1="12" y1="19" x2="12" y2="22"/>
-        <line x1="2" y1="12" x2="5" y2="12"/>
-        <line x1="19" y1="12" x2="22" y2="12"/>
-        <line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/>
-        <line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/>
-        <line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/>
-        <line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/>
-      </g>
+      <g class="sun-icon"><circle cx="12" cy="12" r="4"/><line x1="12" y1="2" x2="12" y2="5"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="2" y1="12" x2="5" y2="12"/><line x1="19" y1="12" x2="22" y2="12"/><line x1="4.2" y1="4.2" x2="6.3" y2="6.3"/><line x1="17.7" y1="17.7" x2="19.8" y2="19.8"/><line x1="17.7" y1="6.3" x2="19.8" y2="4.2"/><line x1="4.2" y1="19.8" x2="6.3" y2="17.7"/></g>
       <path class="moon-icon" d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
     </svg>
   </button>
@@ -107,20 +103,17 @@ Analytics
     <svg viewBox="0 0 24 24"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
     Print
   </button>
-  <!-- 🔥 LOGOUT BUTTON ADDED HERE 🔥 -->
   <button class="btn-outline" onclick="handleLogout()" title="Logout" style="margin-left:8px">
     <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
     Logout
   </button>
 </div>
 </header>
-<!-- ── DASHBOARD ── -->
+
+<!-- DASHBOARD VIEW -->
 <section class="view active" id="view-dashboard">
 <div class="view-header">
-<div>
-<div class="view-title">Dashboard</div>
-<div class="view-sub" id="dashDate">Performance overview</div>
-</div>
+<div><div class="view-title">Dashboard</div><div class="view-sub" id="dashDate">Performance overview</div></div>
 <button class="btn-primary" onclick="switchView('add',document.querySelector('[data-view=add]'))">
 <svg viewBox="0 0 24 24" style="width:13px;height:13px;stroke:#07080C;fill:none;stroke-width:2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
 Add Trade
@@ -156,7 +149,8 @@ Add Trade
 </div>
 </div>
 </section>
-<!-- ── JOURNAL ── -->
+
+<!-- JOURNAL VIEW -->
 <section class="view" id="view-journal">
 <div class="view-header">
 <div><div class="view-title">Trade Journal</div><div class="view-sub">Full trade history with filters</div></div>
@@ -187,7 +181,8 @@ Delete Filtered
 <div class="pagination" id="journalPagination"></div>
 </div>
 </section>
-<!-- ── ADD TRADE ── -->
+
+<!-- ADD TRADE VIEW -->
 <section class="view" id="view-add">
 <div class="view-header"><div><div class="view-title" id="formTitle">Add New Trade</div><div class="view-sub">All calculated fields update automatically</div></div></div>
 <input type="hidden" id="editIndex" value="-1"/>
@@ -202,6 +197,7 @@ Delete Filtered
 <div class="form-label">Capital Invested (₹) <span class="req">*</span></div>
 <input type="number" id="fCapital" class="form-input" placeholder="55000" oninput="calcPnl(); validateFormCapital()"/>
 <div id="capitalWarning" class="capital-warning" style="display:none;font-size:11px;margin-top:6px"></div>
+</div>
 </div>
 </div>
 <div class="form-card">
@@ -264,7 +260,8 @@ Delete Filtered
 </div>
 </div>
 </section>
-<!-- ── ANALYTICS ── -->
+
+<!-- ANALYTICS VIEW -->
 <section class="view" id="view-report">
 <div class="view-header">
 <div><div class="view-title">Analytics Report</div><div class="view-sub">Deep performance metrics</div></div>
@@ -359,6 +356,7 @@ Download Report
 </div>
 </section>
 </main>
+
 <!-- MODAL -->
 <div class="modal-overlay" id="modalOverlay" onclick="closeModal()">
 <div class="modal" onclick="event.stopPropagation()">
@@ -371,7 +369,9 @@ Download Report
 </div>
 </div>
 </div>
+
 <div class="toast" id="toast"></div>
+
 <!-- External JS -->
 <script src="app.js"></script>
 </body>

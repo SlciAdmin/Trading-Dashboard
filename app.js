@@ -15,6 +15,7 @@ const firebaseConfig = {
 let db, auth, currentUserId;
 let trades = [];
 let syncEnabled = false;
+let syncUnsubscribe = null;
 const STORE_KEY = 'tradevault_v2';
 const DEPOSIT_KEY = 'tradevault_deposit';
 const TRADES_COLLECTION = 'trades';
@@ -29,26 +30,42 @@ function initFirebase() {
   }
   
   try {
-    firebase.initializeApp(firebaseConfig);
+    // Initialize Firebase app
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    
     db = firebase.firestore();
     auth = firebase.auth();
     
-    // ✅ FIXED: Use new cache settings instead of deprecated enablePersistence
+    // ✅ FIXED: Use memory cache + enable multi-tab synchronization
     db.settings({
       cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
-      experimentalForceLongPolling: true // Helps with firewall/proxy issues
+      experimentalForceLongPolling: true,
+      merge: true // Prevent host override warning
     });
     
-    // Enable offline persistence with proper error handling
-    db.enablePersistence().catch(err => {
-      if (err.code === 'failed-precondition') {
-        console.log('⚠️ Multiple tabs open - persistence disabled');
-      } else if (err.code === 'unimplemented') {
-        console.log('⚠️ Browser doesn\'t support persistence');
-      } else {
-        console.log('Persistence error:', err);
-      }
-    });
+    // Enable persistence with multi-tab support
+    db.enablePersistence({ synchronizeTabs: true })
+      .then(() => {
+        console.log('✅ IndexedDB persistence enabled with multi-tab sync');
+      })
+      .catch(err => {
+        if (err.code === 'failed-precondition') {
+          console.log('⚠️ Multiple tabs - using memory cache (this is normal)');
+        } else if (err.code === 'unimplemented') {
+          console.log('⚠️ Browser doesn\'t support persistence - using memory cache');
+        } else {
+          console.log('Persistence error (falling back to memory):', err.message);
+        }
+        // App continues to work with memory cache
+      });
+    
+    // Enable auth persistence (keeps user logged in across sessions)
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+      .catch(err => {
+        console.log('Auth persistence warning:', err.message);
+      });
     
     // Listen for auth state changes
     auth.onAuthStateChanged(user => {
@@ -57,37 +74,33 @@ function initFirebase() {
         console.log('👤 User authenticated:', currentUserId);
         syncEnabled = true;
         updateSyncStatus('connected');
+        updateUserDisplay(user.email);
         
-        // Load data from cloud FIRST, then fallback to local
-        setupRealtimeSync();
-        loadUserSettings();
-        
-        // Show dashboard after a small delay to allow sync
-        setTimeout(() => {
-          showDashboard();
-          renderAll();
-        }, 500);
+        // Load user settings first
+        loadUserSettings().then(() => {
+          // Then setup realtime sync for trades
+          setupRealtimeSync();
+          
+          // Show dashboard after sync starts
+          setTimeout(() => {
+            showDashboard();
+            renderAll();
+          }, 300);
+        });
       } else {
         console.log('👤 No user - showing login');
         syncEnabled = false;
         currentUserId = null;
         updateSyncStatus('offline');
+        updateUserDisplay(null);
         showLoginScreen();
-      }
-    });
-    
-    // Handle auth errors globally
-    auth.onIdTokenChanged(user => {
-      if (!user && currentUserId) {
-        console.log('🔄 Token expired or user signed out');
-        showToast('Session expired. Please sign in again.', 'error');
       }
     });
     
     return true;
   } catch (e) {
     console.error('Firebase init error:', e);
-    showToast('Failed to connect to server. Please check your internet.', 'error');
+    showToast('Failed to connect to server. Please refresh the page.', 'error');
     return false;
   }
 }
@@ -109,21 +122,28 @@ function showLoginScreen() {
           <p style="color:var(--text3);font-size:13px;">Sign in to sync your trading journal across devices</p>
         </div>
         
+        <!-- Tab Switcher -->
+        <div style="display:flex;margin-bottom:20px;border:1px solid var(--border);border-radius:8px;overflow:hidden;">
+          <button id="tabLogin" onclick="switchAuthTab('login')" style="flex:1;padding:10px;background:var(--cyan);color:#07080C;font-weight:600;font-size:12px;border:none;cursor:pointer;">Sign In</button>
+          <button id="tabSignup" onclick="switchAuthTab('signup')" style="flex:1;padding:10px;background:transparent;color:var(--text2);font-weight:600;font-size:12px;border:none;cursor:pointer;">Create Account</button>
+        </div>
+        
         <div style="margin-bottom:20px;">
           <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Email Address</label>
           <input type="email" id="loginEmail" placeholder="your@email.com" style="width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:16px;outline:none;" />
           
-          <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Password</label>
+          <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;margin-bottom:6px;">Password <span style="color:var(--text3);font-weight:normal">(min 6 characters)</span></label>
           <input type="password" id="loginPassword" placeholder="••••••••" style="width:100%;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'DM Mono',monospace;font-size:13px;margin-bottom:8px;outline:none;" />
           
-          <div id="loginError" style="color:var(--rose);font-size:11px;margin-bottom:12px;display:none;padding:8px;background:rgba(255,77,109,0.1);border-radius:6px;border:1px solid rgba(255,77,109,0.2);"></div>
+          <div id="loginError" class="auth-error"></div>
+          <div id="loginSuccess" class="auth-success" style="display:none;"></div>
         </div>
         
-        <button id="loginBtn" onclick="handleLogin()" style="width:100%;padding:12px;background:var(--cyan);border:none;border-radius:8px;color:#07080C;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;transition:all 0.2s;">Sign In</button>
-        <button id="signupBtn" onclick="handleSignup()" style="width:100%;padding:12px;background:transparent;border:1px solid var(--border);border-radius:8px;color:var(--text2);font-family:'DM Mono',monospace;font-size:12px;cursor:pointer;transition:all 0.2s;">Create New Account</button>
+        <button id="authBtn" onclick="handleAuth()" style="width:100%;padding:12px;background:var(--cyan);border:none;border-radius:8px;color:#07080C;font-family:'Outfit',sans-serif;font-weight:700;font-size:14px;cursor:pointer;margin-bottom:12px;transition:all 0.2s;">Sign In</button>
         
         <div style="text-align:center;margin-top:20px;padding-top:20px;border-top:1px solid var(--border);">
           <p style="font-size:11px;color:var(--text3);">🔐 Your data is encrypted & synced securely</p>
+          <p style="font-size:10px;color:var(--text3);margin-top:8px;">By continuing, you agree to our Terms & Privacy Policy</p>
         </div>
       </div>
     </div>
@@ -133,16 +153,63 @@ function showLoginScreen() {
   
   // Add enter key support
   document.getElementById('loginPassword').addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') handleLogin();
+    if (e.key === 'Enter') handleAuth();
   });
+  
+  // Initialize with login tab
+  switchAuthTab('login');
+}
+
+// Switch between Login/Signup tabs
+function switchAuthTab(tab) {
+  const loginTab = document.getElementById('tabLogin');
+  const signupTab = document.getElementById('tabSignup');
+  const authBtn = document.getElementById('authBtn');
+  const errorDiv = document.getElementById('loginError');
+  const successDiv = document.getElementById('loginSuccess');
+  
+  if (errorDiv) errorDiv.style.display = 'none';
+  if (successDiv) successDiv.style.display = 'none';
+  
+  if (tab === 'login') {
+    loginTab.style.background = 'var(--cyan)';
+    loginTab.style.color = '#07080C';
+    signupTab.style.background = 'transparent';
+    signupTab.style.color = 'var(--text2)';
+    authBtn.textContent = 'Sign In';
+    authBtn.onclick = handleLogin;
+  } else {
+    signupTab.style.background = 'var(--cyan)';
+    signupTab.style.color = '#07080C';
+    loginTab.style.background = 'transparent';
+    loginTab.style.color = 'var(--text2)';
+    authBtn.textContent = 'Create Account';
+    authBtn.onclick = handleSignup;
+  }
+}
+
+function handleAuth() {
+  // Wrapper that calls correct function based on tab
+  const authBtn = document.getElementById('authBtn');
+  if (authBtn.textContent.includes('Sign In')) {
+    handleLogin();
+  } else {
+    handleSignup();
+  }
 }
 
 function handleLogin() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const password = document.getElementById('loginPassword').value;
   const errorDiv = document.getElementById('loginError');
-  const loginBtn = document.getElementById('loginBtn');
+  const successDiv = document.getElementById('loginSuccess');
+  const authBtn = document.getElementById('authBtn');
   
+  // Reset messages
+  if (errorDiv) { errorDiv.style.display = 'none'; errorDiv.textContent = ''; }
+  if (successDiv) { successDiv.style.display = 'none'; successDiv.textContent = ''; }
+  
+  // Validation
   if (!email || !password) {
     showError(errorDiv, 'Please enter both email and password');
     return;
@@ -154,44 +221,57 @@ function handleLogin() {
   }
   
   // Show loading state
-  loginBtn.disabled = true;
-  loginBtn.textContent = 'Signing in...';
-  errorDiv.style.display = 'none';
+  authBtn.disabled = true;
+  authBtn.classList.add('auth-loading');
+  authBtn.textContent = 'Signing in...';
   
   auth.signInWithEmailAndPassword(email, password)
     .then((userCredential) => {
       console.log('✅ Login successful:', userCredential.user.uid);
-      document.getElementById('loginOverlay')?.remove();
-      showToast('Welcome back! ✓', 'success');
+      if (successDiv) {
+        successDiv.textContent = 'Login successful! Redirecting...';
+        successDiv.style.display = 'block';
+      }
+      // Remove overlay after small delay
+      setTimeout(() => {
+        document.getElementById('loginOverlay')?.remove();
+        showToast('Welcome back! ✓', 'success');
+      }, 500);
     })
     .catch(error => {
       console.error('❌ Login error:', error.code, error.message);
       
-      let message = error.message;
+      let message = 'Login failed. Please try again.';
       switch(error.code) {
         case 'auth/user-not-found':
           message = 'No account found with this email. Please sign up first.';
           break;
         case 'auth/wrong-password':
-          message = 'Incorrect password. Please try again.';
+          message = 'Incorrect password. Please try again or reset password.';
           break;
         case 'auth/invalid-email':
           message = 'Invalid email address format.';
           break;
         case 'auth/user-disabled':
-          message = 'This account has been disabled.';
+          message = 'This account has been disabled. Contact support.';
           break;
         case 'auth/too-many-requests':
-          message = 'Too many attempts. Please try again later.';
+          message = 'Too many attempts. Please wait a few minutes and try again.';
           break;
         case 'auth/network-request-failed':
           message = 'Network error. Please check your internet connection.';
           break;
+        case 'auth/invalid-credential':
+          message = 'Invalid credentials. Please check your email and password.';
+          break;
+        default:
+          message = error.message || 'Authentication failed. Please try again.';
       }
       
       showError(errorDiv, message);
-      loginBtn.disabled = false;
-      loginBtn.textContent = 'Sign In';
+      authBtn.disabled = false;
+      authBtn.classList.remove('auth-loading');
+      authBtn.textContent = 'Sign In';
     });
 }
 
@@ -199,8 +279,14 @@ function handleSignup() {
   const email = document.getElementById('loginEmail').value.trim().toLowerCase();
   const password = document.getElementById('loginPassword').value;
   const errorDiv = document.getElementById('loginError');
-  const signupBtn = document.getElementById('signupBtn');
+  const successDiv = document.getElementById('loginSuccess');
+  const authBtn = document.getElementById('authBtn');
   
+  // Reset messages
+  if (errorDiv) { errorDiv.style.display = 'none'; errorDiv.textContent = ''; }
+  if (successDiv) { successDiv.style.display = 'none'; successDiv.textContent = ''; }
+  
+  // Validation
   if (!email || !password) {
     showError(errorDiv, 'Please enter both email and password');
     return;
@@ -217,44 +303,58 @@ function handleSignup() {
   }
   
   // Show loading state
-  signupBtn.disabled = true;
-  signupBtn.textContent = 'Creating account...';
-  errorDiv.style.display = 'none';
+  authBtn.disabled = true;
+  authBtn.classList.add('auth-loading');
+  authBtn.textContent = 'Creating account...';
   
   auth.createUserWithEmailAndPassword(email, password)
     .then((userCredential) => {
       console.log('✅ Signup successful:', userCredential.user.uid);
-      document.getElementById('loginOverlay')?.remove();
-      showToast('Account created successfully! ✓', 'success');
+      if (successDiv) {
+        successDiv.textContent = 'Account created! Setting up your journal...';
+        successDiv.style.display = 'block';
+      }
       
       // Initialize user settings in Firestore
-      initializeUserSettings(userCredential.user.uid);
+      return initializeUserSettings(userCredential.user.uid);
+    })
+    .then(() => {
+      // Small delay then remove overlay
+      setTimeout(() => {
+        document.getElementById('loginOverlay')?.remove();
+        showToast('Account created successfully! ✓', 'success');
+      }, 800);
     })
     .catch(error => {
       console.error('❌ Signup error:', error.code, error.message);
       
-      let message = error.message;
+      let message = 'Signup failed. Please try again.';
       switch(error.code) {
         case 'auth/email-already-in-use':
           message = 'This email is already registered. Please sign in instead.';
+          // Auto-switch to login tab
+          setTimeout(() => switchAuthTab('login'), 1500);
           break;
         case 'auth/invalid-email':
           message = 'Invalid email address format.';
           break;
         case 'auth/operation-not-allowed':
-          message = 'Email/password accounts are not enabled. Please contact support.';
+          message = 'Email/password sign-up is not enabled. Contact support.';
           break;
         case 'auth/weak-password':
-          message = 'Password is too weak. Please use at least 6 characters.';
+          message = 'Password is too weak. Please use at least 6 characters with mix of letters and numbers.';
           break;
         case 'auth/network-request-failed':
           message = 'Network error. Please check your internet connection.';
           break;
+        default:
+          message = error.message || 'Signup failed. Please try again.';
       }
       
       showError(errorDiv, message);
-      signupBtn.disabled = false;
-      signupBtn.textContent = 'Create New Account';
+      authBtn.disabled = false;
+      authBtn.classList.remove('auth-loading');
+      authBtn.textContent = 'Create Account';
     });
 }
 
@@ -264,6 +364,7 @@ function isValidEmail(email) {
 }
 
 function showError(element, message) {
+  if (!element) return;
   element.textContent = message;
   element.style.display = 'block';
 }
@@ -278,15 +379,35 @@ function showDashboard() {
   }
 }
 
+function updateUserDisplay(email) {
+  const userInfo = document.getElementById('userInfo');
+  if (!userInfo) return;
+  
+  if (email && syncEnabled) {
+    userInfo.style.display = 'block';
+    userInfo.textContent = email.split('@')[0];
+    userInfo.title = `Signed in as ${email}`;
+  } else {
+    userInfo.style.display = 'none';
+  }
+}
+
 function handleLogout() {
-  if (confirm('Are you sure you want to logout? Your data will remain synced for next login.')) {
+  if (confirm('Are you sure you want to logout?\n\nYour data will remain safely synced and will be available when you sign in again.')) {
+    // Cleanup sync listener first
+    if (syncUnsubscribe) {
+      syncUnsubscribe();
+      syncUnsubscribe = null;
+    }
+    
     auth.signOut().then(() => {
       console.log('✅ Logged out');
       currentUserId = null;
       syncEnabled = false;
       trades = [];
-      showToast('Logged out successfully', 'success');
-      // Small delay before reload to ensure cleanup
+      updateUserDisplay(null);
+      showToast('Logged out successfully ✓', 'success');
+      // Reload to show login screen
       setTimeout(() => location.reload(), 300);
     }).catch(error => {
       console.error('❌ Logout error:', error);
@@ -303,10 +424,12 @@ async function initializeUserSettings(userId) {
       createdAt: firebase.firestore.FieldValue.serverTimestamp(),
       theme: 'dark',
       depositedCapital: 0,
-      currency: 'INR'
+      currency: 'INR',
+      lastSync: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
+    console.log('✅ User settings initialized');
   } catch (e) {
-    console.log('Settings init skipped (will retry on next load)');
+    console.log('Settings init will retry on next load:', e.message);
   }
 }
 
@@ -321,7 +444,7 @@ function updateSyncStatus(status) {
     case 'connected':
       if (navigator.onLine) {
         html = '<span style="color:var(--emerald)">● Synced</span>';
-        title = 'Real-time sync active • Data saved to cloud';
+        title = '✓ Real-time sync active • Data saved to cloud';
       } else {
         html = '<span style="color:var(--amber)">● Offline</span>';
         title = 'Working offline • Changes will sync when connected';
@@ -337,7 +460,7 @@ function updateSyncStatus(status) {
       break;
     default: // offline/local
       html = '<span style="color:var(--amber)">● Local</span>';
-      title = 'Data saved locally only • Sign in to enable sync';
+      title = 'Data saved locally • Sign in to enable cloud sync';
   }
   
   indicator.innerHTML = html;
@@ -354,11 +477,17 @@ function setupRealtimeSync() {
   console.log('🔄 Setting up realtime sync for user:', currentUserId);
   updateSyncStatus('syncing');
   
+  // Cleanup existing listener if any
+  if (syncUnsubscribe) {
+    syncUnsubscribe();
+    syncUnsubscribe = null;
+  }
+  
   const query = db.collection(TRADES_COLLECTION)
     .where('userId', '==', currentUserId)
     .orderBy('createdAt', 'desc');
   
-  const unsubscribe = query.onSnapshot(
+  syncUnsubscribe = query.onSnapshot(
     snapshot => {
       console.log(`📥 Received ${snapshot.size} trades from cloud`);
       
@@ -402,9 +531,6 @@ function setupRealtimeSync() {
       loadFromLocalStorage();
     }
   );
-  
-  // Store unsubscribe for cleanup if needed
-  window._syncUnsubscribe = unsubscribe;
 }
 
 // Fallback loader
@@ -435,7 +561,7 @@ async function syncTradeToCloud(trade) {
     // ✅ CRITICAL: Always include userId for security rules
     const tradeData = {
       ...trade,
-      userId: currentUserId,  // This is essential!
+      userId: currentUserId,  // This is essential for security rules!
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     };
     
@@ -464,9 +590,9 @@ async function syncTradeToCloud(trade) {
     saveTrades(trades);
     
     if (error.code === 'permission-denied') {
-      showToast('❌ Cannot save: Check Firestore rules', 'error');
+      showToast('❌ Cannot save: Check Firestore security rules', 'error');
     } else if (error.code === 'unavailable') {
-      showToast('⚠️ Offline - saved locally, will sync later', 'error');
+      showToast('⚠️ Offline - saved locally, will sync when connected', 'error');
     } else {
       showToast('⚠️ Saved locally (sync failed)', 'error');
     }
@@ -495,26 +621,31 @@ async function saveUserSettings(settings) {
       ...settings,
       updatedAt: firebase.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
+    console.log('✅ Settings synced to cloud');
   } catch (e) {
     console.log('Settings sync skipped:', e.message);
   }
 }
 
-function loadUserSettings() {
+async function loadUserSettings() {
   if (!syncEnabled || !currentUserId || !db) return;
   
-  db.collection(SETTINGS_COLLECTION).doc(currentUserId).get()
-    .then(doc => {
-      if (doc.exists) {
-        const settings = doc.data();
-        if (settings.theme) applyTheme(settings.theme);
-        if (settings.depositedCapital !== undefined) {
-          setDepositedCapital(settings.depositedCapital);
-        }
-        console.log('📥 User settings loaded');
+  try {
+    const doc = await db.collection(SETTINGS_COLLECTION).doc(currentUserId).get();
+    if (doc.exists) {
+      const settings = doc.data();
+      if (settings.theme) applyTheme(settings.theme);
+      if (settings.depositedCapital !== undefined) {
+        setDepositedCapital(settings.depositedCapital);
       }
-    })
-    .catch(e => console.log('Settings load skipped:', e.message));
+      console.log('📥 User settings loaded from cloud');
+    }
+  } catch(e) {
+    console.log('Settings load skipped (will use local):', e.message);
+    // Load from localStorage as fallback
+    const savedTheme = localStorage.getItem('tradevault_theme');
+    if (savedTheme) applyTheme(savedTheme);
+  }
 }
 
 /* ═══ LOCAL STORAGE FUNCTIONS (FALLBACK) ═══ */
@@ -2007,8 +2138,9 @@ window.addEventListener('online', () => {
   updateSyncStatus('connected');
   if (syncEnabled && currentUserId && db) {
     // Re-setup sync listener when back online
-    if (window._syncUnsubscribe) {
-      window._syncUnsubscribe();
+    if (syncUnsubscribe) {
+      syncUnsubscribe();
+      syncUnsubscribe = null;
     }
     setupRealtimeSync();
     showToast('🔄 Reconnected - syncing data...', 'success');
